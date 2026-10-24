@@ -1,0 +1,1386 @@
+<!doctype html>
+<html lang="it" data-tema="scuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Preventivo idraulico · demo GPN Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* scuro come l'Ingrosso (grafite); il tasto sole / luna passa al chiaro, per il cantiere al sole.
+     --pieno: fondo del pulsante pieno; --verde: scritte e scelte (sul grafite serve il verde luminoso) */
+  :root {
+    --bg: #121316; --foglio: #1A1C21; --fondo: #23262D; --linea: #2E3139; --testo: #ECEDEF; --sec: #8C8F98; --spento: #555962;
+    --pieno: #166534; --verde: #22C55E; --verde-tenue: rgba(34,197,94,.12); --graf: #2E3139; --rosso: #F87171;
+  }
+  :root[data-tema="chiaro"] {
+    --bg: #FFFFFF; --foglio: #FFFFFF; --fondo: #F5F4F0; --linea: #DEDCD5; --testo: #111214; --sec: #4A4D55; --spento: #9A9DA4;
+    --pieno: #166534; --verde: #166534; --verde-tenue: #E8F3EC; --graf: #121316; --rosso: #B91C1C;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* scorre la pagina intera (sul telefono un riquadro che scorre dentro una pagina ferma si "incastrava");
+     intestazione e pulsante in basso restano agganciati con position: sticky */
+  body { background: var(--bg); color: var(--testo); font-family: Inter, sans-serif; font-size: 15px; line-height: 1.5; -webkit-tap-highlight-color: transparent; }
+  button, input { font-family: inherit; color: inherit; }
+  button { background: none; border: 0; cursor: pointer; }
+  .num { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .sim { width: 24px; height: 24px; flex: none; }
+
+  /* stessa schermata su telefono, iPad e computer: sugli schermi grandi la colonna si allarga fino a 720 px
+     (oltre, le righe diventano troppo lunghe: l'occhio si perde tra il nome e il numero) */
+  .app { max-width: 720px; min-height: 100vh; min-height: 100dvh; margin: 0 auto; background: var(--bg); position: relative; }
+  .schermo { min-height: inherit; display: flex; flex-direction: column; }
+  .testa { position: sticky; top: 0; z-index: 5; background: var(--bg); }
+  .schermo[hidden] { display: none; }
+  .corpo { flex: 1; }
+
+  /* barra in alto, uguale nelle due schermate */
+  .barra { display: flex; align-items: center; gap: 2px; padding: 14px 10px 4px 18px; flex: none; }
+  .barra h1 { font-family: "Space Grotesk", sans-serif; font-size: 18px; font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .barra button { font-size: 14px; min-height: 44px; padding: 0 6px; color: var(--sec); }
+  .barra .prezzi { color: var(--verde); font-weight: 600; }
+  .barra .settori { color: var(--verde); font-weight: 600; padding: 0 8px 0 0; margin-left: -4px; }
+  .barra .tema { width: 40px; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .tema svg { width: 20px; height: 20px; }
+  .tema .luna, [data-tema="chiaro"] .tema .sole { display: none; }
+  [data-tema="chiaro"] .tema .luna { display: block; }
+
+  .passi { display: flex; gap: 6px; padding: 6px 18px 0; font-size: 12px; font-weight: 600; color: var(--sec); flex: none; }
+  .passi span { flex: 1; border-top: 3px solid var(--linea); padding-top: 6px; }
+  .passi .on { border-color: var(--verde); color: var(--testo); }
+  .passi .fatto { border-color: var(--verde); }
+
+  .piede { position: sticky; bottom: 0; z-index: 5; padding: 12px 16px calc(18px + env(safe-area-inset-bottom)); border-top: 1px solid var(--linea); background: var(--bg); flex: none; }
+  .btn { width: 100%; min-height: 56px; border-radius: 12px; background: var(--pieno); color: #fff; font-weight: 600; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-2 { width: 100%; min-height: 52px; border: 1.5px solid var(--linea); border-radius: 14px; background: var(--bg); font-weight: 600; font-size: 16px; }
+  .link { display: block; width: 100%; min-height: 44px; margin-top: 4px; font-size: 14px; color: var(--sec); }
+  .link b { color: var(--verde); }
+
+  /* ---------- 1 · Ritocchi ---------- */
+  .totale-s { padding: 14px 18px 12px; flex: none; }
+  .totale-s .tot { font-size: 40px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
+  .totale-s small { display: block; color: var(--sec); font-size: 13px; }
+
+  .schede { display: flex; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--linea); overflow-x: auto; scrollbar-width: none; flex: none; }
+  .schede::-webkit-scrollbar { display: none; }
+  .scheda { padding: 12px 12px 11px; min-height: 48px; font-size: 14px; font-weight: 600; color: var(--sec); white-space: nowrap; border-bottom: 3px solid transparent; }
+  .scheda.on { color: var(--testo); border-color: var(--verde); }
+  .scheda.piu { color: var(--verde); font-size: 18px; padding: 8px 14px; }
+
+  .voci { padding: 4px 14px 12px; }
+  .voce { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--linea); }
+  .etich { flex: 1; min-width: 0; }
+  .etich b { display: block; font-size: 16px; }
+  .etich small { color: var(--sec); font-size: 13px; }
+  .tasto { width: 56px; height: 56px; flex: none; border-radius: 12px; border: 1.5px solid var(--testo); background: var(--fondo); font-family: "Barlow Condensed", sans-serif; font-size: 28px; font-weight: 700; transition: transform .08s; }
+  .tasto:active { transform: scale(.94); }
+  .tasto:disabled { border-color: var(--linea); color: var(--spento); cursor: default; }
+  .q { width: 40px; text-align: center; font-size: 26px; font-weight: 700; flex: none; }
+  .q.zero { color: var(--spento); }
+  .q.batte { animation: batte .25s; }
+  @keyframes batte { 50% { transform: scale(1.25); color: var(--verde); } }
+  .agg-comp { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 52px; margin-top: 14px; border: 1.5px dashed var(--linea); border-radius: 12px; color: var(--verde); font-weight: 600; font-size: 15px; }
+  .togli { display: block; margin: 6px auto 0; min-height: 44px; padding: 0 12px; font-size: 14px; color: var(--sec); }
+
+  .sub { display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; margin-bottom: 10px; }
+  .sub b { font-size: 18px; }
+
+  /* ---------- 2 · Casa ---------- */
+  .case { display: flex; gap: 8px; padding: 16px 14px 0; flex: none; }
+  .casa { flex: 1; min-height: 56px; border: 1.5px solid var(--linea); border-radius: 12px; font-weight: 600; font-size: 15px; transition: background .15s, border-color .15s; }
+  .casa[aria-pressed="true"] { border: 2px solid var(--verde); background: var(--verde-tenue); color: var(--verde); }
+
+  .numero { text-align: center; padding: 28px 0 20px; flex: none; }
+  .numero .tot { font-size: 60px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+  .numero small { display: block; color: var(--sec); font-size: 14px; margin-top: 10px; }
+
+  .righe { padding: 0 18px 12px; }
+  .riga { display: flex; align-items: center; min-height: 52px; border-bottom: 1px solid var(--linea); }
+  .riga .nome { flex: 1; font-size: 16px; }
+  .riga .p { color: var(--sec); font-size: 14px; margin-right: 4px; }
+  .riga .cambia { color: var(--verde); font-weight: 600; font-size: 14px; min-height: 48px; padding: 0 0 0 14px; }
+
+  /* fogli dal basso: prezzi, nuova stanza, anteprima WhatsApp */
+  .velo { position: fixed; inset: 0; justify-content: center; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 40; }
+  .velo.on { opacity: 1; pointer-events: auto; }
+  /* i fogli tengono lo scorrimento per sé: arrivati in fondo non lo passano alla pagina sotto (bug dal telefono, 16/10) */
+  .velo, .foglio, .finestra, .chat, .mail-corpo, .carta, .lato { overscroll-behavior: contain; }
+  /* mentre un foglio è aperto la pagina è ferma (inchiodata dove era; top lo mette il codice) */
+  body.fermo { position: fixed; left: 0; right: 0; overflow: hidden; }
+  .foglio { background: var(--foglio); width: 100%; max-width: 560px; max-height: 92%; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 18px 16px calc(20px + env(safe-area-inset-bottom)); transform: translateY(30px); transition: transform .2s; }
+  .velo.on .foglio { transform: none; }
+  .foglio h2 { font-family: "Space Grotesk", sans-serif; font-size: 18px; margin-bottom: 4px; }
+  .foglio .spiega { font-size: 13px; color: var(--sec); margin-bottom: 10px; }
+  .scelte { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .scelte button { min-height: 56px; border: 1.5px solid var(--linea); border-radius: 12px; font-weight: 600; }
+
+  .scelte .altro { border-style: dashed; color: var(--verde); }
+  .mano { display: flex; gap: 8px; margin-top: 10px; }
+  .mano[hidden] { display: none; }
+  .mano input { flex: 1; min-width: 0; height: 52px; border: 1.5px solid var(--verde); border-radius: 12px; padding: 0 12px; font-size: 16px; outline: none; }
+  .mano button { min-height: 52px; padding: 0 16px; border-radius: 12px; background: var(--pieno); color: #fff; font-weight: 600; }
+
+  .etich[data-cat] { cursor: pointer; }
+  /* prese e interruttori: riga del gruppo (si tocca per scegliere il tipo), sotto una riga per tipo */
+  .gruppo { display: flex; align-items: center; gap: 8px; min-height: 64px; border-bottom: 1px solid var(--linea); }
+  .gruppo .apri { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 0; text-align: left; }
+  .gruppo .etich b { font-size: 16px; }
+  .gruppo .etich small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gruppo .freccia { flex: none; width: 20px; height: 20px; color: var(--testo); transition: transform .15s; }
+  .gruppo [aria-expanded="true"] .freccia { transform: rotate(180deg); }
+  .gruppo .tipo-piu { flex: none; min-height: 40px; display: flex; align-items: center; padding: 0 14px; border: 1.5px solid var(--verde); border-radius: 10px; color: var(--verde); font-weight: 600; font-size: 14px; }
+  .voce.figlia { padding-left: 34px; }
+  .voce.figlia .etich b { font-size: 15px; }
+  /* catalogo dei modelli (prese, luci): si sceglie stanza per stanza */
+  .etich .scelto { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--verde); }
+  .aziende { display: flex; gap: 6px; margin-top: 4px; }
+  .aziende button { flex: 1; min-height: 48px; border: 1.5px solid var(--linea); border-radius: 12px; font-weight: 600; font-size: 14px; }
+  .aziende button[aria-pressed="true"] { border: 2px solid var(--verde); background: var(--verde-tenue); color: var(--verde); }
+  .togli-cat { display: block; width: 100%; min-height: 48px; margin-top: 10px; font-size: 15px; font-weight: 600; color: var(--rosso); }
+  .modelli { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .mod { display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 10px 12px; border: 1.5px solid var(--linea); border-radius: 12px; text-align: left; }
+  .mod[aria-pressed="true"] { border: 2px solid var(--verde); background: var(--verde-tenue); }
+  /* scheda prodotto: foto (per ora un disegno), marca, nome, codice */
+  .foto { width: 72px; height: 72px; flex: none; border-radius: 10px; background: #F5F4F0; display: flex; align-items: center; justify-content: center; }
+  .foto svg { width: 60px; height: 60px; }
+  .mod .marca { display: block; font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--sec); }
+  .mod .cod { display: block; font-size: 12px; color: var(--sec); }
+  .avviso-cat { font-size: 12px; color: var(--sec); background: var(--fondo); border-radius: 10px; padding: 8px 10px; margin: 8px 0 4px; }
+  .mod .info { flex: 1; min-width: 0; }
+  .mod .info b { display: block; font-size: 15px; }
+  .mod .info small { color: var(--sec); font-size: 13px; }
+  .mod .piu-p { font-size: 16px; font-weight: 700; }
+  .mod.nessuno { min-height: 52px; justify-content: center; border-style: dashed; color: var(--sec); font-weight: 600; }
+  .gia { margin-top: 4px; }
+  .gia-titolo { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--sec); margin: 6px 0 2px; }
+  .gia-riga { display: flex; align-items: center; min-height: 48px; border-bottom: 1px solid var(--linea); font-size: 15px; }
+  .gia-riga span { flex: 1; }
+  .gia-riga button { min-height: 44px; padding: 0 4px 0 14px; color: var(--sec); font-size: 14px; }
+  .gia-riga button:hover { color: var(--rosso); }
+
+  /* listino prezzi */
+  .prezzo { display: flex; align-items: center; gap: 10px; min-height: 60px; border-bottom: 1px solid var(--linea); }
+  .prezzo label { flex: 1; font-size: 16px; display: flex; align-items: center; gap: 10px; }
+  .campo { display: flex; align-items: center; border: 1.5px solid var(--linea); border-radius: 10px; height: 48px; padding: 0 10px; width: 120px; background: var(--fondo); }
+  .campo:focus-within { border-color: var(--verde); background: var(--bg); }
+  .campo span { color: var(--sec); }
+  .campo input { border: 0; background: none; width: 100%; height: 100%; text-align: right; font-family: "Barlow Condensed", sans-serif; font-size: 22px; font-weight: 700; outline: none; }
+  .foglio .btn { margin-top: 14px; }
+
+  /* anteprima WhatsApp: nella demo non parte nessun messaggio */
+  #veloWA { z-index: 50; }
+  .chat { background: #EFEAE2; border-radius: 14px; padding: 14px 12px; max-height: 52vh; overflow-y: auto; margin-top: 8px; }
+  .bolla { background: #D9FDD3; border-radius: 10px 10px 2px 10px; padding: 9px 11px 6px; margin-left: 18px; font-size: 14.5px; line-height: 1.45; color: #111b21; white-space: pre-wrap; box-shadow: 0 1px 0 rgba(0,0,0,.08); }
+  .bolla .ora { display: block; text-align: right; font-size: 11px; color: #667781; margin-top: 2px; }
+  /* invio: scelta del canale e anteprime */
+  .canali { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .canali button { display: flex; flex-direction: column; align-items: flex-start; min-height: 64px; padding: 10px 14px; border: 1.5px solid var(--linea); border-radius: 12px; text-align: left; }
+  .canali b { font-size: 16px; }
+  .canali small { color: var(--sec); font-size: 13px; }
+  .mail { border: 1px solid var(--linea); border-radius: 12px; overflow: hidden; margin-top: 8px; font-size: 14px; }
+  .mail-testa { background: var(--fondo); padding: 10px 12px; border-bottom: 1px solid var(--linea); }
+  .mail-testa div { color: var(--sec); }
+  .mail-testa b { color: var(--testo); font-weight: 600; }
+  .mail-corpo { padding: 12px; white-space: pre-wrap; max-height: 40vh; overflow-y: auto; line-height: 1.5; }
+  .carta { background: var(--fondo); border-radius: 12px; padding: 14px; margin-top: 8px; max-height: 56vh; overflow-y: auto; }
+  .pagina-pdf { color: #111214; --sec: #4A4D55; --linea: #DEDCD5; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.12); padding: 20px 18px 24px; min-height: 380px; font-size: 12px; }
+  .pdf-titolo { font-family: "Space Grotesk", sans-serif; font-size: 20px; font-weight: 700; letter-spacing: .04em; }
+  .pdf-sotto { color: var(--sec); margin-bottom: 14px; }
+  .pdf-riga { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--linea); }
+  .pdf-riga span:first-child { flex: 1; }
+  .pdf-riga .d { color: var(--sec); }
+  .pdf-tot { display: flex; justify-content: space-between; margin-top: 12px; font-family: "Space Grotesk", sans-serif; font-size: 16px; font-weight: 700; }
+  .pdf-nota { color: var(--sec); margin-top: 4px; }
+  .nota-demo { text-align: center; font-size: 13px; color: var(--sec); margin: 12px 0 10px; }
+
+  .toast { position: fixed; left: 50%; bottom: 120px; transform: translate(-50%, 20px); background: var(--graf); color: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.3); font-size: 14px; padding: 12px 16px; border-radius: 12px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: 340px; text-align: center; z-index: 60; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ===== lati su computer (solo da 1180 px in su; la colonna centrale non cambia) ===== */
+  .lato { display: none; }
+  @media (min-width: 1180px) {
+    .lato { display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; width: calc((100vw - 720px) / 2); padding: 40px 36px; overflow-y: auto; }
+    .lato.sx { left: 0; border-right: 1px solid var(--linea); }
+    .lato.dx { right: 0; border-left: 1px solid var(--linea); }
+  }
+  .lato .marchio { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 15px; letter-spacing: .02em; display: flex; align-items: center; gap: 8px; }
+  .lato .marchio i { width: 10px; height: 10px; border-radius: 3px; background: var(--verde); display: inline-block; }
+  .lato h2 { font-family: "Space Grotesk", sans-serif; font-size: 30px; line-height: 1.15; margin: 40px 0 12px; letter-spacing: -0.01em; }
+  .lato .frase { color: var(--sec); font-size: 16px; max-width: 34ch; }
+  .vantaggi { list-style: none; margin-top: 32px; display: flex; flex-direction: column; gap: 20px; }
+  .vantaggi li { display: flex; gap: 14px; }
+  .vantaggi .ico { width: 40px; height: 40px; flex: none; border-radius: 10px; background: var(--fondo); color: var(--verde); display: flex; align-items: center; justify-content: center; }
+  .vantaggi .ico svg { width: 22px; height: 22px; }
+  .vantaggi b { display: block; font-size: 15px; }
+  .vantaggi small { color: var(--sec); font-size: 13px; }
+  .lato .piede-lato { margin-top: auto; padding-top: 24px; font-size: 12px; color: var(--spento); }
+  .lato .etichetta { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--sec); margin-bottom: 12px; }
+  .foglio-vivo { background: #fff; color: #111214; --sec: #4A4D55; --linea: #DEDCD5; border-radius: 6px; padding: 28px 26px 32px; font-size: 13px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+  .foglio-vivo .pdf-titolo { font-size: 20px; }
+  .foglio-vivo { padding: 24px 20px 28px; }
+  .foglio-vivo .pdf-testa > div:first-child { min-width: 0; }
+  .foglio-vivo .pdf-ditta small { display: none; }
+  .foglio-vivo .pdf-tot { font-size: 20px; }
+  .foglio-vivo .vuoto { color: #9A9DA4; padding: 18px 0; }
+  .stanze-lato { display: flex; flex-direction: column; }
+  .stanze-lato button { display: flex; justify-content: space-between; gap: 10px; min-height: 52px; align-items: center; border-bottom: 1px solid var(--linea); text-align: left; font-size: 15px; }
+  .stanze-lato button.on b { color: var(--verde); }
+  .stanze-lato span { color: var(--sec); font-size: 14px; }
+  .stanze-lato .tot-lato { display: flex; justify-content: space-between; padding-top: 16px; font-size: 15px; }
+  .stanze-lato .tot-lato b { font-family: "Barlow Condensed", sans-serif; font-size: 28px; }
+  .aziende-lato { display: flex; flex-direction: column; gap: 14px; }
+  .az-card { background: var(--foglio); border: 1px solid var(--linea); border-radius: 14px; padding: 16px; }
+  .az-card .riga1 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .az-card b { font-size: 16px; }
+  .az-card small { color: var(--sec); font-size: 12px; }
+  .az-card .prodotti { display: flex; gap: 8px; }
+  .az-card .prodotti span { flex: 1; aspect-ratio: 1; border-radius: 10px; background: #F5F4F0; display: flex; align-items: center; justify-content: center; }
+  .az-card .prodotti svg { width: 70%; height: 70%; }
+  /* lato sinistro: vetrina sopra e stanze sotto, più strette per stare in uno schermo */
+  .lato.compatto { padding-top: 32px; }
+  .lato.compatto h2 { font-size: 26px; margin: 28px 0 10px; }
+  .lato.compatto .frase { font-size: 15px; }
+  .lato.compatto .vantaggi { margin-top: 22px; gap: 14px; }
+  .lato.compatto .stanze-lato button { min-height: 46px; }
+  /* vantaggi toccabili */
+  .vant-btn { display: flex; gap: 14px; width: 100%; text-align: left; align-items: center; padding: 8px 10px; margin: -8px -10px; border-radius: 12px; }
+  .vant-btn:hover { background: var(--fondo); }
+  .vant-btn .vai { margin-left: auto; font-size: 22px; color: var(--verde); }
+  /* catalogo completo: finestra grande al centro, per sfogliare */
+  #veloCatTutto { align-items: center; }
+  .finestra { background: var(--foglio); width: calc(100% - 64px); max-width: 960px; max-height: 88vh; overflow-y: auto; border-radius: 20px; padding: 24px 28px 28px; transform: translateY(20px); transition: transform .2s; }
+  .velo.on .finestra { transform: none; }
+  .finestra .testa-f { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .finestra h2 { font-family: "Space Grotesk", sans-serif; font-size: 24px; }
+  .finestra .chiudi-f { min-height: 44px; padding: 0 12px; color: var(--sec); font-size: 15px; }
+  .finestra .aziende { max-width: 520px; margin-top: 14px; }
+  .finestra h3 { font-family: "Space Grotesk", sans-serif; font-size: 18px; margin: 26px 0 4px; padding-top: 18px; border-top: 1px solid var(--linea); }
+  .finestra h4 { font-size: 13px; font-weight: 600; color: var(--sec); text-transform: uppercase; letter-spacing: .07em; margin: 12px 0 8px; }
+  .griglia-cat { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .carta-cat { border: 1px solid var(--linea); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .carta-cat .foto { width: 100%; height: 120px; }
+  .carta-cat .foto svg { width: 96px; height: 96px; }
+  .carta-cat .marca { font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--sec); }
+  .carta-cat b { display: block; font-size: 15px; }
+  .carta-cat .cod { font-size: 12px; color: var(--sec); }
+  .carta-cat .riga-p { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+  .carta-cat .riga-p .num { font-size: 20px; }
+  .carta-cat .agg { min-height: 40px; padding: 0 12px; border-radius: 10px; background: var(--pieno); color: #fff; font-weight: 600; font-size: 13px; }
+  /* PDF nuovo: intestazione, sezioni per stanza, una riga per componente con l'immagine */
+  .pdf-testa { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding-bottom: 12px; border-bottom: 2px solid #111214; }
+  .pdf-ditta { display: flex; align-items: center; gap: 8px; text-align: right; }
+  .pdf-ditta .logo { width: 34px; height: 34px; border-radius: 8px; background: #166534; color: #fff; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+  .pdf-ditta { white-space: nowrap; }
+  .pdf-ditta b { display: block; font-size: 13px; }
+  .pdf-ditta small { color: #4A4D55; font-size: 11px; }
+  .pdf-per { margin: 10px 0 4px; color: #4A4D55; }
+  .pdf-per b { color: #111214; }
+  .pdf-sez { margin-top: 14px; }
+  .pdf-sez-t { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 4px; border-bottom: 1px solid #111214; }
+  .pdf-sez-t b { font-family: "Space Grotesk", sans-serif; font-size: 14px; }
+  .pdf-r { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #DEDCD5; }
+  .pdf-img { width: 36px; height: 36px; flex: none; border-radius: 6px; background: #F5F4F0; display: flex; align-items: center; justify-content: center; }
+  .pdf-img svg { width: 30px; height: 30px; }
+  .pdf-img .sim { width: 20px; height: 20px; color: #4A4D55; }
+  .pdf-nome { flex: 1; min-width: 0; }
+  .pdf-nome b { display: block; font-weight: 600; }
+  .pdf-nome small { color: #4A4D55; font-size: 11px; }
+  .pdf-nome .dascegliere { color: #9A9DA4; font-style: italic; }
+  .pdf-imp { text-align: right; white-space: nowrap; }
+  .pdf-imp small { display: block; color: #4A4D55; font-size: 11px; }
+  .pdf-imp .num { font-size: 15px; }
+  .pdf-tot { border-top: 2px solid #111214; padding-top: 10px; margin-top: 16px; }
+  .pdf-tot .num { font-size: 22px; }
+  /* allegato PDF in chat e in mail */
+  .allegato { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border-radius: 8px; background: rgba(0,0,0,.06); text-align: left; margin-bottom: 6px; cursor: pointer; }
+  .allegato .pdf-ico { width: 34px; height: 40px; flex: none; border-radius: 4px; background: #DC2626; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; }
+  .allegato b { display: block; font-size: 13.5px; color: #111b21; }
+  .allegato small { font-size: 12px; color: #667781; }
+  .mail-alleg { padding: 0 12px 12px; }
+  .mail-alleg .allegato { background: var(--fondo); border: 1px solid var(--linea); }
+  .mail-alleg .allegato b { color: var(--testo); }
+  .mail-alleg .allegato small { color: var(--sec); }
+  .vuota-stanza { padding: 22px 4px 6px; color: var(--sec); font-size: 15px; text-align: center; }
+  /* freccia indietro: solo dove c'è un passo prima */
+  .testa-foglio { display: flex; align-items: center; gap: 4px; }
+  .testa-foglio h2 { margin-bottom: 0; }
+  .indietro { width: 40px; height: 40px; margin-left: -10px; flex: none; font-size: 32px; line-height: 1; color: var(--testo); display: flex; align-items: center; justify-content: center; padding-bottom: 4px; }
+  .indietro[hidden] { display: none; }
+
+  /* ===== idraulica: una scheda per apparecchio, con i suoi attacchi (direzione B, 23/10) ===== */
+  /* blu = acqua fredda, rosso = calda: lo stesso codice dei rubinetti */
+  :root { --fredda: #60A5FA; --calda: #F87171; }
+  :root[data-tema="chiaro"] { --fredda: #2563EB; --calda: #DC2626; }
+  .appar { background: var(--foglio); border: 1px solid var(--linea); border-radius: 16px; padding: 8px 10px 6px 12px; margin-top: 10px; }
+  .appar .su { display: flex; align-items: center; gap: 6px; }
+  .appar .apri { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 56px; text-align: left; }
+  .appar .etich b { font-size: 16px; }
+  .appar .etich small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .appar .etich small .num { font-size: 16px; color: var(--testo); }
+  .appar.zero { opacity: .6; }
+  .attacchi { display: flex; flex-wrap: wrap; gap: 6px; width: calc(100% - 34px); margin-left: 34px; padding: 6px 0; min-height: 40px; text-align: left; }
+  .att { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600; padding: 4px 10px 4px 8px; border-radius: 999px; background: var(--fondo); }
+  .att svg { width: 12px; height: 12px; }
+  .att.niente { color: var(--sec); font-weight: 500; }
+  .pallino { width: 9px; height: 9px; border-radius: 50%; flex: none; display: inline-block; }
+  .mod-riga { display: block; width: calc(100% - 34px); margin-left: 34px; min-height: 40px; text-align: left; font-size: 13.5px; font-weight: 600; color: var(--sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mod-riga.scelto { color: var(--verde); }
+  .mod-riga i { font-style: normal; font-weight: 500; color: var(--sec); }
+  .scelte .gia-qui { display: block; font-size: 12px; font-weight: 500; color: var(--verde); }
+  .gruppo-t { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--sec); margin: 14px 0 0; }
+
+  /* ===== schermata 2 · Casa (direzione C, 24/10): tipo di lavoro 2 × 2, prezzo per riga, cosa è compreso ===== */
+  #case { display: grid; grid-template-columns: 1fr 1fr; }
+  #case .casa { min-height: 48px; font-size: 14px; }
+  .riga .p.num { color: var(--testo); font-size: 18px; }
+  .titolo-comp { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--sec); padding: 18px 0 4px; }
+  .comp { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; border-bottom: 1px solid var(--linea); text-align: left; font-size: 15px; }
+  .comp > span:first-child { flex: 1; min-width: 0; }
+  .pill { flex: none; font-size: 13px; font-weight: 700; padding: 7px 12px; border-radius: 999px; white-space: nowrap; transition: background .15s, color .15s; }
+  .pill.si { background: var(--verde-tenue); color: var(--verde); }
+  .pill.no { background: var(--fondo); color: var(--sec); }
+  /* PDF (direzione C, 24/10): blocchi con l'immagine grande, rubinetto dentro, tubi in una riga, riquadro compreso */
+  .pdf-blocco { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #DEDCD5; }
+  .pdf-grande { width: 64px; height: 64px; flex: none; border-radius: 8px; background: #F5F4F0; display: flex; align-items: center; justify-content: center; }
+  .pdf-grande svg { width: 54px; height: 54px; }
+  .pdf-grande .sim { width: 26px; height: 26px; color: #4A4D55; }
+  .pdf-blocco .pdf-nome b { font-size: 13px; }
+  .pdf-blocco .pdf-nome small { display: block; }
+  .pdf-rub { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 11px; color: #4A4D55; }
+  .pdf-mini { width: 22px; height: 22px; flex: none; border-radius: 4px; background: #F5F4F0; display: flex; align-items: center; justify-content: center; }
+  .pdf-mini svg { width: 18px; height: 18px; }
+  .pdf-impianto { font-size: 11px; color: #4A4D55; padding-top: 6px; }
+  .pdf-impianto i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin: 0 3px 0 2px; }
+  .pdf-riq { margin-top: 14px; border: 1px solid #DEDCD5; border-radius: 6px; padding: 10px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px; line-height: 1.45; }
+  .pdf-riq h5 { font-size: 11px; font-weight: 700; margin-bottom: 3px; color: #111214; }
+  .pdf-riq ul { list-style: none; }
+  .pdf-riq li { padding-left: 14px; position: relative; color: #4A4D55; }
+  .pdf-riq .si li::before { content: "✓"; position: absolute; left: 0; color: #166534; font-weight: 700; }
+  .pdf-riq .no li::before { content: "✗"; position: absolute; left: 0; color: #9A9DA4; font-weight: 700; }
+  .pdf-riq li.vuota::before { content: none; }
+</style>
+</head>
+<body>
+<!-- simboli: linee semplici, prendono il colore del testo -->
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="wc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M6 3h7v7H6z"/><path d="M4 10h16c0 4-3 7-7 7h-2l1 4H8l1-4.5C6 15 4 13 4 10z"/></g></symbol>
+  <symbol id="bidet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M4 10h16c0 4-3 7-7 7h-2c-4 0-7-3-7-7z"/><path d="M12 10V6h3"/><path d="M9 17l-1 4h8l-1-4"/></g></symbol>
+  <symbol id="lavabo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M3 11h18c0 4-3 6-7 6h-4c-4 0-7-2-7-6z"/><path d="M12 11V5h4v2"/><path d="M12 17v4"/></g></symbol>
+  <symbol id="doccia" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M5 21V5a2 2 0 0 1 2-2h3"/><path d="M8 6h6"/><path d="M9 9v1M11 9v2M13 9v1M10 12v1M12 12v1"/><path d="M3 21h18"/></g></symbol>
+  <symbol id="vasca" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M3 12h18v2a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z"/><path d="M6 12V6a2 2 0 0 1 4 0"/><path d="M7 19l-1 2M17 19l1 2"/></g></symbol>
+  <symbol id="lavello" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M2 12h20"/><path d="M4 12v3a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-3"/><path d="M14 12V6a2 2 0 0 1 4 0v1"/></g></symbol>
+  <symbol id="elettrodom" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M4 7h16"/></g></symbol>
+  <symbol id="termo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 6h3v14H4zM10.5 6h3v14h-3zM17 6h3v14h-3z"/><path d="M4 9h16M4 17h16"/></g></symbol>
+  <symbol id="salviette" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 3v18M18 3v18M6 7h12M6 11h12M6 15h12M6 19h12"/></g></symbol>
+  <symbol id="rubinetto" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M10 21V9h4v12"/><path d="M14 11h4a2 2 0 0 1 2 2v1"/><path d="M8 6h8"/><path d="M12 6V3"/></g></symbol>
+  <symbol id="caldaia" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="5" y="2" width="14" height="18" rx="2"/><path d="M9 6h6v3H9z"/><path d="M12 13c1.5 1.5 2 2.5 2 3.2a2 2 0 0 1-4 0c0-.7.5-1.7 2-3.2z"/><path d="M9 20v2M15 20v2"/></g></symbol>
+  <symbol id="scarico" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M7 10h10M7 14h10"/></g></symbol>
+  <symbol id="altro" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="14" height="14" rx="4"/><path d="M10 7v6M7 10h6"/></g></symbol>
+  <symbol id="dico" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 2h7l4 4v12H5z"/><path d="M8 11l2 2 3-4"/></g></symbol>
+</svg>
+
+<div class="app">
+
+  <!-- ===== 1 · Stanze: una scheda per apparecchio ===== -->
+  <section class="schermo" id="schermoS">
+    <div class="testa">
+    <div class="barra">
+      <button class="settori" data-settori hidden>‹ Settori</button>
+      <h1>Nuovo preventivo</h1>
+      <button class="tema" data-tema-tasto aria-label="Cambia colori: chiaro o scuro">
+        <svg class="sole" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+      </button>
+      <button class="prezzi" data-prezzi>Prezzi</button>
+      <button data-ricomincia>Ricomincia</button>
+    </div>
+    <div class="passi" id="passiS"></div>
+    <div class="totale-s">
+      <div class="tot num" id="totaleS">€ 0</div>
+      <small id="sottoS"></small>
+    </div>
+    <div class="schede" id="schede"></div>
+    </div>
+    <div class="corpo"><div class="voci" id="voci"></div></div>
+    <div class="piede">
+      <div class="sub"><span id="subNome"></span><b class="num" id="subPrezzo"></b></div>
+      <button class="btn" id="avanti"></button>
+    </div>
+  </section>
+
+  <!-- ===== 2 · Casa: il totale e l'invio ===== -->
+  <section class="schermo" id="schermoC" hidden>
+    <div class="barra">
+      <button class="settori" data-settori hidden>‹ Settori</button>
+      <h1>Nuovo preventivo</h1>
+      <button class="tema" data-tema-tasto aria-label="Cambia colori: chiaro o scuro">
+        <svg class="sole" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+      </button>
+      <button class="prezzi" data-prezzi>Prezzi</button>
+      <button data-ricomincia>Ricomincia</button>
+    </div>
+    <div class="passi" id="passiC"></div>
+    <div class="case" id="case" role="group" aria-label="Tipo di casa"></div>
+    <div class="numero">
+      <div class="tot num" id="totaleC">€ 0</div>
+      <small id="sintesi"></small>
+    </div>
+    <div class="corpo"><div class="righe" id="righe"></div></div>
+    <div class="piede">
+      <button class="btn" id="ritocca">Rivedi le stanze</button>
+      <button class="link" id="invia">oppure <b>invia il preventivo</b></button>
+    </div>
+  </section>
+
+  <!-- foglio "prezzi" -->
+  <div class="velo" id="veloP">
+    <div class="foglio">
+      <h2>I tuoi prezzi</h2>
+      <p class="spiega">IVA esclusa. Valgono per tutte le stanze di questo preventivo.</p>
+      <div id="listaPrezzi"></div>
+      <button class="btn" id="salvaP">Salva prezzi</button>
+      <button class="link" id="annullaP">Annulla</button>
+    </div>
+  </div>
+
+  <!-- foglio "come lo mandi?" -->
+  <div class="velo" id="veloInvio">
+    <div class="foglio">
+      <h2>Come lo mandi?</h2>
+      <div class="canali">
+        <button data-canale="WA"><b>WhatsApp</b><small>Messaggio con il PDF allegato</small></button>
+        <button data-canale="Mail"><b>Email</b><small>Mail con il PDF allegato</small></button>
+        <button data-canale="PDF"><b>Scarica PDF</b><small>Da stampare o mandare a mano</small></button>
+      </div>
+      <button class="link" data-chiudi>Annulla</button>
+    </div>
+  </div>
+
+  <!-- foglio "anteprima email" -->
+  <div class="velo" id="veloMail">
+    <div class="foglio">
+      <h2>Ecco la mail che riceverebbe il tuo cliente</h2>
+      <div class="mail">
+        <div class="mail-testa"><div>A: <b>il tuo cliente</b></div><div>Oggetto: <b id="oggettoMail"></b></div></div>
+        <div class="mail-corpo" id="corpoMail"></div>
+        <div class="mail-alleg" id="allegMail"></div>
+      </div>
+      <p class="nota-demo">Nella demo non parte nessuna mail.</p>
+      <button class="btn-2" data-chiudi>Chiudi</button>
+    </div>
+  </div>
+
+  <!-- foglio "anteprima PDF" -->
+  <div class="velo" id="veloPDF">
+    <div class="foglio">
+      <h2>Ecco il PDF che riceverebbe il tuo cliente</h2>
+      <div class="carta"><div class="pagina-pdf" id="paginaPDF"></div></div>
+      <p class="nota-demo">Nella demo non si scarica nessun file.</p>
+      <button class="btn-2" data-chiudi>Chiudi</button>
+    </div>
+  </div>
+
+  <!-- foglio "anteprima WhatsApp" -->
+  <div class="velo" id="veloWA">
+    <div class="foglio">
+      <h2>Ecco cosa riceverebbe il tuo cliente</h2>
+      <div class="chat"><div class="bolla" id="bollaWA"></div></div>
+      <p class="nota-demo">Nella demo non parte nessun messaggio.</p>
+      <button class="btn-2" id="chiudiWA">Chiudi</button>
+    </div>
+  </div>
+
+  <!-- foglio "che apparecchio aggiungi?" -->
+  <div class="velo" id="veloComp">
+    <div class="foglio">
+      <h2>Che apparecchio aggiungi?</h2>
+      <p class="spiega" id="compSpiega"></p>
+      <div class="gia" id="giaComp"></div>
+      <div id="sceltaComp"></div>
+      <div class="mano" id="mano" hidden>
+        <input id="nomeMano" type="text" maxlength="40" placeholder="Nome dell'apparecchio" autocomplete="off">
+        <button id="aggMano">Aggiungi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- foglio "cosa serve": attacchi e rubinetto di un apparecchio -->
+  <div class="velo" id="veloAtt">
+    <div class="foglio">
+      <h2 id="attTitolo"></h2>
+      <p class="spiega" id="attSpiega"></p>
+      <div id="attRighe"></div>
+      <button class="btn" data-chiudi>Fatto</button>
+    </div>
+  </div>
+
+  <!-- foglio "catalogo": il modello per la stanza aperta -->
+  <div class="velo" id="veloMod">
+    <div class="foglio">
+      <div class="testa-foglio"><button class="indietro" id="indietroCat" aria-label="Indietro">‹</button><h2 id="modTitolo"></h2></div>
+      <p class="spiega" id="modSpiega"></p>
+      <div class="modelli" id="modelli"></div>
+    </div>
+  </div>
+
+  <!-- foglio "nuova stanza" -->
+  <div class="velo" id="velo">
+    <div class="foglio">
+      <h2>Che stanza aggiungi?</h2>
+      <div class="scelte" id="scelte"></div>
+      <div class="mano" id="manoStanza" hidden>
+        <input id="nomeStanza" type="text" maxlength="30" placeholder="Nome della stanza" autocomplete="off">
+        <button id="aggStanza">Aggiungi</button>
+      </div>
+    </div>
+  </div>
+</div>
+<aside class="lato sx compatto">
+    <div class="marchio"><i></i>GPN Lab</div>
+    <h2>Il preventivo dell'idraulico, dal telefono.</h2>
+    <p class="frase">Dal sopralluogo al preventivo in pochi minuti: aggiungi gli apparecchi, scegli i modelli con il cliente e lo mandi.</p>
+    <ul class="vantaggi">
+      <li><button class="vant-btn" data-apri-cat><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><div><b>Il catalogo delle aziende</b><small>Sanitari, rubinetti e caldaie, con foto e prezzo.</small></div><span class="vai">›</span></button></li>
+      <li><button class="vant-btn" data-apri-invio><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></span><div><b>Lo mandi subito</b><small>WhatsApp, email o PDF, appena hai finito.</small></div><span class="vai">›</span></button></li>
+    </ul>
+    <p class="etichetta" style="margin-top:32px">Le stanze del preventivo</p>
+    <div class="stanze-lato" id="stanzeLato"></div>
+    <p class="piede-lato">Demo: aziende, prodotti e prezzi di prova.</p>
+  </aside>
+<aside class="lato dx">
+    <p class="etichetta">Così lo riceve il tuo cliente</p>
+    <div class="foglio-vivo" id="foglioVivo"></div>
+  </aside>
+<div class="velo" id="veloCatTutto">
+    <div class="finestra">
+      <div class="testa-f"><h2>Catalogo completo</h2><button class="chiudi-f" data-chiudi-cat>Chiudi</button></div>
+      <p class="avviso-cat">Foto, marche e codici di prova: qui andrà il catalogo dell'azienda.</p>
+      <div id="corpoCatTutto"></div>
+    </div>
+  </div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---- Listino: prezzi indicativi (ricerca del 23/10), si cambiano dal tasto "Prezzi" ----
+// attacchi: ogni punto acqua (fredda o calda) e ogni scarico; rub = posa di un rubinetto
+const PREZZI = { fredda: 90, calda: 90, scarico: 110, rub: 35, caldaia: 450, dico: 150 };
+const ATTACCHI = [
+  { k: "fredda",  nome: "Acqua fredda", uno: "Punto acqua fredda", corto: "fredda" },
+  { k: "calda",   nome: "Acqua calda",  uno: "Punto acqua calda",  corto: "calda" },
+  { k: "scarico", nome: "Scarico",      uno: "Scarico",            corto: "scarico" },
+];
+const GRUPPI = [
+  { k: "bagno",   nome: "Bagno" },
+  { k: "cucina",  nome: "Cucina e lavanderia" },
+  { k: "risc",    nome: "Riscaldamento" },
+  { k: "esterno", nome: "Esterno" },
+];
+// apparecchi: posa e attacchi di partenza (per pezzo); rub = il rubinetto che gli serve. Segnaposto, da rifare con un idraulico vero
+const att = (fredda, calda, scarico) => ({ fredda, calda, scarico });
+const APP = [
+  { k: "wc",        g: "bagno",   nome: "WC",                sim: "wc",         posa: 80,  att: att(1, 0, 1), rub: null },
+  { k: "bidet",     g: "bagno",   nome: "Bidet",             sim: "bidet",      posa: 70,  att: att(1, 1, 1), rub: "mbidet" },
+  { k: "lavabo",    g: "bagno",   nome: "Lavabo",            sim: "lavabo",     posa: 70,  att: att(1, 1, 1), rub: "mlavabo" },
+  { k: "doccia",    g: "bagno",   nome: "Piatto doccia",     sim: "doccia",     posa: 180, att: att(1, 1, 1), rub: "colonna" },
+  { k: "vasca",     g: "bagno",   nome: "Vasca",             sim: "vasca",      posa: 250, att: att(1, 1, 1), rub: "mvasca" },
+  { k: "lavello",   g: "cucina",  nome: "Lavello",           sim: "lavello",    posa: 70,  att: att(1, 1, 1), rub: "mcucina" },
+  { k: "lavastov",  g: "cucina",  nome: "Lavastoviglie",     sim: "elettrodom", posa: 50,  att: att(1, 0, 1), rub: null, solo: "allaccio" },
+  { k: "lavatrice", g: "cucina",  nome: "Lavatrice",         sim: "elettrodom", posa: 50,  att: att(1, 0, 1), rub: null, solo: "allaccio" },
+  { k: "termo",     g: "risc",    nome: "Termosifone",       sim: "termo",      posa: 120, att: att(0, 0, 0), rub: null, risc: true },
+  { k: "salviette", g: "risc",    nome: "Scaldasalviette",   sim: "salviette",  posa: 110, att: att(0, 0, 0), rub: null, risc: true },
+  { k: "rubest",    g: "esterno", nome: "Rubinetto esterno", sim: "rubinetto",  posa: 40,  att: att(1, 0, 0), rub: null },
+];
+APP.forEach(a => { PREZZI[a.k] = a.posa; a.uno = `Posa ${a.nome.toLowerCase().replace("wc", "WC")}`; });
+const RUB = {
+  mlavabo: { nome: "Miscelatore lavabo", corto: "Miscelatore" },
+  mbidet:  { nome: "Miscelatore bidet",  corto: "Miscelatore" },
+  colonna: { nome: "Colonna doccia",     corto: "Colonna doccia" },
+  mvasca:  { nome: "Miscelatore vasca",  corto: "Miscelatore" },
+  mcucina: { nome: "Miscelatore cucina", corto: "Miscelatore" },
+};
+const FISSI = [
+  { k: "caldaia", nome: "Caldaia",                     uno: "Posa caldaia", sim: "caldaia", nota: "smontaggio della vecchia compreso" },
+  { k: "dico",    nome: "Dichiarazione di conformità", uno: "Conformità",   sim: "dico",    nota: "DM 37/08" },
+];
+// apparecchi scritti a mano ("+ Altro"): entrano qui e si ritrovano nelle altre stanze
+const CATALOGO = [];
+const COMP = Object.fromEntries(APP.map(c => [c.k, c]));
+
+// ---- Catalogo: tre aziende finte, due modelli ciascuna. Il prezzo del modello (materiale) si aggiunge alla posa ----
+const AZIENDE = ["Azienda 1", "Azienda 2", "Azienda 3"];
+const MARCHE = ["Marca A", "Marca B", "Marca C"];   // finte: per ora un'azienda = una marca
+// sanitari: materiale dell'apparecchio × serie dell'azienda
+const MAT_SAN = { wc: 180, bidet: 150, lavabo: 140, doccia: 220, vasca: 420, lavello: 160 };
+const SERIE_SAN = [
+  [{ nome: "Serie Tonda",   fin: "Ceramica bianca", x: 1,    colore: "#FAFAF8", segno: "#111214" },
+   { nome: "Serie Squadra", fin: "Ceramica bianca", x: 1.25, colore: "#FAFAF8", segno: "#111214" }],
+  [{ nome: "Sospesa rimless", fin: "Bianco opaco",  x: 1.35, colore: "#ECEBE6", segno: "#111214" },
+   { nome: "Serie Nera",      fin: "Nero opaco",    x: 1.8,  colore: "#2A2B2F", segno: "#FFFFFF" }],
+  [{ nome: "Serie Design", fin: "Bianco lucido",  x: 2.2, colore: "#FFFFFF", segno: "#111214" },
+   { nome: "Serie Pietra", fin: "Grigio pietra",  x: 2.6, colore: "#B9B4AA", segno: "#111214" }],
+];
+// rubinetti: materiale del tipo × finitura dell'azienda
+const MAT_RUB = { mlavabo: 60, mbidet: 55, colonna: 160, mvasca: 110, mcucina: 80 };
+const SERIE_RUB = [
+  [{ nome: "Serie Base",   fin: "Cromo",          x: 1,   colore: "#C9CDD2", segno: "#111214" },
+   { nome: "Serie Comfort", fin: "Cromo",         x: 1.3, colore: "#C9CDD2", segno: "#111214" }],
+  [{ nome: "Serie Nera",   fin: "Nero opaco",     x: 1.5, colore: "#2A2B2F", segno: "#FFFFFF" },
+   { nome: "Serie Oro",    fin: "Oro spazzolato", x: 2,   colore: "#C9A85C", segno: "#111214" }],
+  [{ nome: "Serie Inox",   fin: "Acciaio",        x: 1.7, colore: "#AEB3B8", segno: "#111214" },
+   { nome: "Termostatica", fin: "Acciaio, temperatura fissa", x: 2.4, colore: "#AEB3B8", segno: "#111214" }],
+];
+const PROPRI = {
+  termo: [
+    [{ nome: "Alluminio 8 elementi", fin: "Bianco, 60 cm", prezzo: 110, colore: "#FAFAF8", segno: "#111214" },
+     { nome: "Alluminio 12 elementi", fin: "Bianco, 60 cm", prezzo: 150, colore: "#FAFAF8", segno: "#111214" }],
+    [{ nome: "Tubolare 3 colonne", fin: "Acciaio bianco", prezzo: 170, colore: "#ECEBE6", segno: "#111214" },
+     { nome: "Tubolare 4 colonne", fin: "Acciaio bianco", prezzo: 210, colore: "#ECEBE6", segno: "#111214" }],
+    [{ nome: "Design verticale", fin: "Antracite, 180 cm", prezzo: 340, colore: "#3A3C42", segno: "#FFFFFF" },
+     { nome: "Design orizzontale", fin: "Antracite, 120 cm", prezzo: 290, colore: "#3A3C42", segno: "#FFFFFF" }],
+  ],
+  salviette: [
+    [{ nome: "Scaldasalviette 80 cm", fin: "Bianco", prezzo: 90, colore: "#FAFAF8", segno: "#111214" },
+     { nome: "Scaldasalviette 120 cm", fin: "Bianco", prezzo: 130, colore: "#FAFAF8", segno: "#111214" }],
+    [{ nome: "Scaldasalviette 120 cm", fin: "Cromo", prezzo: 190, colore: "#C9CDD2", segno: "#111214" },
+     { nome: "Elettrico e ad acqua", fin: "Cromo", prezzo: 260, colore: "#C9CDD2", segno: "#111214" }],
+    [{ nome: "Design piatto", fin: "Nero opaco", prezzo: 280, colore: "#2A2B2F", segno: "#FFFFFF" },
+     { nome: "Design piatto largo", fin: "Nero opaco", prezzo: 340, colore: "#2A2B2F", segno: "#FFFFFF" }],
+  ],
+  rubest: [
+    [{ nome: "Rubinetto a muro", fin: "Ottone", prezzo: 18, colore: "#C9A85C", segno: "#111214" },
+     { nome: "Rubinetto con portagomma", fin: "Ottone", prezzo: 24, colore: "#C9A85C", segno: "#111214" }],
+    [{ nome: "Rubinetto antigelo", fin: "Ottone nichelato", prezzo: 45, colore: "#C9CDD2", segno: "#111214" },
+     { nome: "Antigelo con chiave", fin: "Ottone nichelato", prezzo: 60, colore: "#C9CDD2", segno: "#111214" }],
+    [{ nome: "Fontanella da giardino", fin: "Pietra", prezzo: 120, colore: "#B9B4AA", segno: "#111214" },
+     { nome: "Colonna da giardino", fin: "Acciaio", prezzo: 150, colore: "#AEB3B8", segno: "#111214" }],
+  ],
+  caldaia: [
+    [{ nome: "Condensazione 24 kW", fin: "Classe A", prezzo: 950,  colore: "#FAFAF8", segno: "#111214" },
+     { nome: "Condensazione 28 kW", fin: "Classe A", prezzo: 1150, colore: "#FAFAF8", segno: "#111214" }],
+    [{ nome: "Condensazione 24 kW", fin: "Con app e Wi-Fi", prezzo: 1250, colore: "#ECEBE6", segno: "#111214" },
+     { nome: "Condensazione 30 kW", fin: "Con app e Wi-Fi", prezzo: 1450, colore: "#ECEBE6", segno: "#111214" }],
+    [{ nome: "Condensazione 25 kW", fin: "Da incasso", prezzo: 1700, colore: "#3A3C42", segno: "#FFFFFF" },
+     { nome: "Condensazione 35 kW", fin: "Da incasso", prezzo: 2000, colore: "#3A3C42", segno: "#FFFFFF" }],
+  ],
+};
+const CAT = {};      // CAT[k][azienda] = elenco dei modelli (lavatrice e lavastoviglie: niente, sono del cliente)
+const MOD = {};      // id → modello
+Object.keys(MAT_SAN).forEach(k => { CAT[k] = SERIE_SAN.map(az => az.map(m => ({ ...m, prezzo: Math.round(MAT_SAN[k] * m.x) }))); });
+Object.keys(MAT_RUB).forEach(k => { CAT[k] = SERIE_RUB.map(az => az.map(m => ({ ...m, prezzo: Math.round(MAT_RUB[k] * m.x) }))); });
+Object.assign(CAT, PROPRI);
+Object.entries(CAT).forEach(([k, az]) => az.forEach((lista, a) => lista.forEach((m, n) => {
+  m.id = `${k}-${a}-${n}`; m.az = a; MOD[m.id] = m;
+})));
+const modello = (dove, k) => (dove.mod[k] && MOD[dove.mod[k]]) || null;
+const modRub = (s, k) => (s.rmod[k] && MOD[s.rmod[k]]) || null;
+const prezzoDi = (dove, k) => PREZZI[k] + (modello(dove, k)?.prezzo || 0);   // posa + modello (caldaia)
+const sceltoTxt = m => `${AZIENDE[m.az]} · ${m.nome}`;
+// tipo di lavoro: solo etichetta (titolo del PDF e del messaggio), non cambia i numeri
+const LAVORI = { bagno: "Rifacimento bagno", ristrutt: "Ristrutturazione", nuovo: "Impianto nuovo", caldaia: "Solo caldaia" };
+// voci a parte: "Compreso" o "Non compreso", finiscono nel PDF (ipotesi nostre: le giuste le dice l'idraulico)
+const COMPRESO = [
+  { k: "smontaggio", nome: "Smontaggio dei vecchi sanitari", si: "Compreso",  no: "Non compreso",  parte: true },
+  { k: "tenuta",     nome: "Prova di tenuta dell'impianto",  si: "Compresa",  no: "Non compresa",  parte: true },
+  { k: "tracce",     nome: "Tracce e opere murarie",         si: "Comprese",  no: "Non comprese",  parte: false },
+  { k: "piastrelle", nome: "Piastrelle",                     si: "Comprese",  no: "Non comprese",  parte: false },
+  { k: "macerie",    nome: "Smaltimento delle macerie",      si: "Compreso",  no: "Non compreso",  parte: false },
+];
+const NUOVE = ["Bagno", "Cucina", "Lavanderia", "Esterno", "Locale caldaia", "Soggiorno", "Camera"];
+
+// ---- Stato del preventivo: si parte dal solo Bagno, vuoto ----
+let stato = null;
+let aperta = 0;            // scheda aperta: indice della stanza, oppure "casa"
+let avvisoTocca = false;   // l'avviso "tocca il nome / i pallini" compare una volta sola
+// voci: apparecchi della stanza; s[k] = quanti; mod: modello; rmod: modello del rubinetto; att: attacchi per pezzo (+ rub 0/1)
+const vuota = nome => ({ nome, voci: [], mod: {}, rmod: {}, att: {} });
+function nuovo() {
+  stato = { tipo: "bagno", compreso: Object.fromEntries(COMPRESO.map(c => [c.k, c.parte])), caldaia: 0, dico: 0, toccato: false, mod: {}, stanze: [vuota("Bagno")] };
+  aperta = 0;
+}
+
+// ---- Conti: un apparecchio costa posa + modello + i suoi attacchi; il rubinetto a parte (posa + modello) ----
+const unitApp = (s, k) => { const a = s.att[k]; return prezzoDi(s, k) + a.fredda * PREZZI.fredda + a.calda * PREZZI.calda + a.scarico * PREZZI.scarico; };
+const unitRub = (s, k) => s.att[k].rub ? PREZZI.rub + (modRub(s, k)?.prezzo || 0) : 0;
+const costoApp = (s, k) => s[k] * (unitApp(s, k) + unitRub(s, k));
+const costo = s => s.voci.reduce((t, k) => t + costoApp(s, k), 0);
+const fissi = () => stato.caldaia * prezzoDi(stato, "caldaia") + stato.dico * PREZZI.dico;
+const totale = () => stato.stanze.reduce((t, s) => t + costo(s), 0) + fissi();
+const conta = (s, f) => s.voci.reduce((t, k) => t + s[k] * f(s.att[k]), 0);
+const pezzi = s => conta(s, () => 1);
+const acqua = s => conta(s, a => a.fredda + a.calda);
+const scarichi = s => conta(s, a => a.scarico);
+const somma = f => stato.stanze.reduce((t, s) => t + f(s), 0);
+const plur = (n, uno, tanti) => `${n} ${n === 1 ? uno : tanti}`;
+const pezziTxt = n => plur(n, "apparecchio", "apparecchi");
+const acquaTxt = n => plur(n, "punto acqua", "punti acqua");
+const scarichiTxt = n => plur(n, "scarico", "scarichi");
+const stanzeTxt = n => plur(n, "stanza", "stanze");
+// punto delle migliaia sempre (il browser in italiano lo salta sotto i 10.000)
+const euro = n => "€ " + String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+// Il numero conta fino al nuovo valore: si vede che è cambiato e di quanto
+let mostrato = 0, anim = null;
+function animaTotale(fine, id) {
+  cancelAnimationFrame(anim);
+  const el = document.getElementById(id);
+  const inizio = mostrato, t0 = performance.now(), durata = 350;
+  if (inizio === fine) { el.textContent = euro(fine); return; }
+  const passo = t => {
+    const k = Math.min(1, (t - t0) / durata), e = 1 - Math.pow(1 - k, 3);
+    mostrato = Math.round(inizio + (fine - inizio) * e);
+    el.textContent = euro(mostrato);
+    if (k < 1) anim = requestAnimationFrame(passo);
+  };
+  anim = requestAnimationFrame(passo);
+}
+
+function passi(n) {
+  return ["1 Stanze", "2 Casa"].map((t, i) =>
+    `<span class="${i + 1 === n ? "on" : i + 1 < n ? "fatto" : ""}">${t}</span>`).join("");
+}
+
+// ---------- 1 · Stanze ----------
+// i pallini degli attacchi: blu fredda, rosso calda, poi lo scarico (con "2 ×" se sono più di uno)
+function pallini(a) {
+  const n = (q, t) => q > 1 ? `${q} × ${t}` : t;
+  const p = [];
+  if (a.fredda) p.push(`<span class="att"><span class="pallino" style="background:var(--fredda)"></span>${n(a.fredda, "fredda")}</span>`);
+  if (a.calda) p.push(`<span class="att"><span class="pallino" style="background:var(--calda)"></span>${n(a.calda, "calda")}</span>`);
+  if (a.scarico) p.push(`<span class="att"><svg><use href="#scarico"/></svg>${n(a.scarico, "scarico")}</span>`);
+  return p;
+}
+function schedaApp(s, k) {
+  const c = COMP[k], a = s.att[k], q = s[k], m = modello(s, k);
+  const unit = unitApp(s, k) + unitRub(s, k);
+  const prezzo = q > 1 ? `<span class="num">${euro(q * unit)}</span> · ${q} × ${euro(unit)}` : `<span class="num">${euro(unit)}</span> in tutto`;
+  const p = pallini(a);
+  const attacchi = c.risc ? `<span class="att niente">allaccio all'impianto compreso</span>`
+    : p.length ? p.join("") : `<span class="att niente">nessun attacco · tocca per aggiungerli</span>`;
+  const modRiga = CAT[k]
+    ? `<button class="mod-riga ${m ? "scelto" : ""}" data-cat="${k}">${m ? sceltoTxt(m) : "Modello da scegliere ›"}</button>`
+    : c.solo ? `<div class="mod-riga" style="cursor:default"><i>Solo allaccio: l'apparecchio è del cliente</i></div>` : "";
+  let rubRiga = "";
+  if (c.rub) {
+    const r = RUB[c.rub], rm = modRub(s, k);
+    rubRiga = !a.rub ? `<button class="mod-riga" data-rub="${k}"><i>Senza ${r.corto.toLowerCase()} ·</i> aggiungi ›</button>`
+      : `<button class="mod-riga ${rm ? "scelto" : ""}" data-rub="${k}">${rm ? `${r.corto}: ${sceltoTxt(rm)}` : `${r.corto} da scegliere ›`}</button>`;
+  }
+  return `<div class="appar ${q === 0 ? "zero" : ""}">
+    <div class="su"><button class="apri" data-cat="${k}"><svg class="sim"><use href="#${c.sim}"/></svg>
+      <span class="etich"><b>${c.nome}</b><small>${prezzo}</small></span></button>
+      <button class="tasto" data-k="${k}" data-d="-1" ${q === 0 ? "disabled" : ""} aria-label="Togli">−</button>
+      <div class="q num ${q === 0 ? "zero" : ""}" id="q-${k}">${q}</div>
+      <button class="tasto" data-k="${k}" data-d="1" aria-label="Aggiungi">+</button></div>
+    <button class="attacchi" data-att="${k}" aria-label="Attacchi di ${c.nome}">${attacchi}</button>
+    ${modRiga}${rubRiga}</div>`;
+}
+
+function disegnaS(scorri) {
+  document.getElementById("passiS").innerHTML = passi(1);
+  animaTotale(totale(), "totaleS");
+  document.getElementById("sottoS").textContent =
+    `${pezziTxt(somma(pezzi))} · ${acquaTxt(somma(acqua))} · ${scarichiTxt(somma(scarichi))} · IVA esclusa`;
+
+  // schede: le stanze, poi "Tutta la casa", poi +
+  const schede = document.getElementById("schede");
+  schede.innerHTML =
+    stato.stanze.map((s, i) => `<button class="scheda ${aperta === i ? "on" : ""}" data-i="${i}">${s.nome}</button>`).join("") +
+    `<button class="scheda ${aperta === "casa" ? "on" : ""}" data-i="casa">Tutta la casa</button>` +
+    `<button class="scheda piu" id="aggiungi" aria-label="Aggiungi stanza">+</button>`;
+  if (scorri) schede.querySelector(".scheda.on")?.scrollIntoView({ inline: "center", block: "nearest" });
+
+  const voci = document.getElementById("voci");
+  if (aperta === "casa") {
+    // come il quadro dell'elettricista: righe 0 / 1, la caldaia con il suo catalogo
+    voci.innerHTML = FISSI.map(f => {
+      const m = modello(stato, f.k);
+      const sotto = m ? `${euro(PREZZI[f.k])} posa + ${euro(m.prezzo)}` : euro(PREZZI[f.k]) + (f.nota ? " · " + f.nota : "");
+      return riga(f.k, f.nome, sotto, f.sim, stato[f.k], stato[f.k] === 0, stato[f.k] === 1, !!CAT[f.k], m && sceltoTxt(m));
+    }).join("");
+    document.getElementById("subNome").textContent = "Tutta la casa";
+    document.getElementById("subPrezzo").textContent = euro(fissi());
+    document.getElementById("avanti").textContent = "Avanti: Casa →";
+  } else {
+    const s = stato.stanze[aperta];
+    voci.innerHTML =
+      (s.voci.length ? "" : `<p class="vuota-stanza">Stanza vuota: aggiungi gli apparecchi che servono.</p>`) +
+      s.voci.map(k => schedaApp(s, k)).join("") +
+      `<button class="agg-comp" id="aggComp">+ Aggiungi apparecchio</button>` +
+      `<button class="togli" id="togli">Togli questa stanza</button>`;
+    document.getElementById("subNome").textContent = `${s.nome} · ${pezziTxt(pezzi(s))}`;
+    document.getElementById("subPrezzo").textContent = euro(costo(s));
+    const dopo = aperta + 1 < stato.stanze.length ? stato.stanze[aperta + 1].nome : "Tutta la casa";
+    document.getElementById("avanti").textContent = `Avanti: ${dopo} →`;
+  }
+}
+
+// riga semplice (Tutta la casa): toccando il nome si apre il catalogo
+function riga(k, nome, sotto, sim, q, menoSpento, piuSpento, cat, scelto) {
+  return `<div class="voce"><svg class="sim"><use href="#${sim}"/></svg>
+    <div class="etich" ${cat ? `data-cat="${k}"` : ""}><b>${nome}</b><small>${sotto}</small>${scelto ? `<span class="scelto">${scelto}</span>` : ""}</div>
+    <button class="tasto" data-k="${k}" data-d="-1" ${menoSpento ? "disabled" : ""} aria-label="Togli">−</button>
+    <div class="q num ${q === 0 ? "zero" : ""}" id="q-${k}">${q}</div>
+    <button class="tasto" data-k="${k}" data-d="1" ${piuSpento ? "disabled" : ""} aria-label="Aggiungi">+</button></div>`;
+}
+
+function batte(id) {
+  const q = document.getElementById(id);
+  if (q) { q.classList.remove("batte"); void q.offsetWidth; q.classList.add("batte"); }
+}
+function cambia(k, d) {
+  if (aperta === "casa") stato[k] = Math.min(1, Math.max(0, stato[k] + d));
+  else { const s = stato.stanze[aperta]; s[k] = Math.max(0, s[k] + d); }
+  stato.toccato = true;
+  disegnaS(false);
+  batte("q-" + k);
+}
+
+// ---------- 2 · Casa ----------
+function disegnaC() {
+  document.getElementById("passiC").innerHTML = passi(2);
+  document.getElementById("case").innerHTML = Object.entries(LAVORI).map(([k, nome]) =>
+    `<button class="casa" data-tipo="${k}" aria-pressed="${k === stato.tipo}">${nome}</button>`).join("");
+  animaTotale(totale(), "totaleC");
+  document.getElementById("sintesi").textContent = `${pezziTxt(somma(pezzi))} · ${stanzeTxt(stato.stanze.length)} · IVA esclusa`;
+  // il prezzo su ogni riga: le stanze sono poche e il bagno pesa metà del totale
+  document.getElementById("righe").innerHTML =
+    stato.stanze.map((s, i) => `<div class="riga"><span class="nome">${s.nome}</span><span class="p num">${euro(costo(s))}</span><button class="cambia" data-stanza="${i}">Cambia</button></div>`).join("") +
+    `<div class="riga"><span class="nome">Caldaia e conformità</span><span class="p num">${euro(fissi())}</span><button class="cambia" data-stanza="casa">Cambia</button></div>` +
+    `<p class="titolo-comp">Nel preventivo · tocca per cambiare</p>` +
+    COMPRESO.map(c => { const si = stato.compreso[c.k];
+      return `<button class="comp" data-comp="${c.k}" aria-pressed="${si}"><span>${c.nome}</span><span class="pill ${si ? "si" : "no"}">${si ? c.si : c.no}</span></button>`; }).join("");
+}
+
+// ---------- navigazione ----------
+function vai(schermo) {
+  document.getElementById("schermoS").hidden = schermo !== "S";
+  document.getElementById("schermoC").hidden = schermo !== "C";
+  if (schermo === "S") disegnaS(true); else disegnaC();
+  window.scrollTo(0, 0);
+}
+function apri(i) { aperta = i; vai("S"); }
+function ridisegna() { if (document.getElementById("schermoS").hidden) disegnaC(); else disegnaS(false); }
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove("on"), msg.length > 40 ? 3500 : 2200);
+}
+
+document.querySelectorAll("[data-ricomincia]").forEach(b => b.addEventListener("click", () => {
+  if (stato.toccato && !confirm("Ricominciare da capo? Gli apparecchi inseriti si perdono.")) return;
+  nuovo(); vai("S");
+}));
+
+// ---- Arrivo dalla schermata "Seleziona il settore" (?da=settori): compare "‹ Settori" e si tengono i colori scelti lì ----
+(() => {
+  const qs = new URLSearchParams(location.search);
+  if (qs.get("tema") === "chiaro") document.documentElement.dataset.tema = "chiaro";
+  if (qs.get("da") !== "settori") return;
+  // con "‹ Settori" nella barra c'è meno spazio: il titolo si accorcia in "Preventivo"
+  document.querySelectorAll(".barra h1").forEach(h => { if (h.textContent === "Nuovo preventivo") h.textContent = "Preventivo"; });
+  document.querySelectorAll("[data-settori]").forEach(b => {
+    b.hidden = false;
+    b.addEventListener("click", () => history.length > 1 ? history.back() : (location.href = document.referrer || "../"));
+  });
+})();
+
+// ---- Colori: scuro (come l'Ingrosso) o chiaro (al sole); resta fino al ricaricare ----
+document.querySelectorAll("[data-tema-tasto]").forEach(b => b.addEventListener("click", () => {
+  const h = document.documentElement;
+  h.dataset.tema = h.dataset.tema === "chiaro" ? "scuro" : "chiaro";
+}));
+
+// ---- Prezzi: attacchi, posa dei rubinetti, posa degli apparecchi usati, caldaia e conformità ----
+document.querySelectorAll("[data-prezzi]").forEach(b => b.addEventListener("click", () => {
+  const usati = [...APP, ...CATALOGO].filter(c => stato.stanze.some(s => s.voci.includes(c.k)));
+  const sim = { fredda: `<span class="pallino" style="background:var(--fredda);margin:0 7px"></span>`,
+                calda: `<span class="pallino" style="background:var(--calda);margin:0 7px"></span>` };
+  const voci = [...ATTACCHI.map(a => ({ ...a, sim: a.k === "scarico" ? "scarico" : null })),
+                { k: "rub", uno: "Posa rubinetto", sim: "rubinetto" }, ...usati, ...FISSI];
+  document.getElementById("listaPrezzi").innerHTML = voci.map(v =>
+    `<div class="prezzo"><label for="p-${v.k}">${sim[v.k] || `<svg class="sim"><use href="#${v.sim}"/></svg>`}${v.uno}</label>
+      <div class="campo"><span>€</span><input id="p-${v.k}" data-k="${v.k}" type="text" inputmode="numeric" value="${PREZZI[v.k]}"></div></div>`).join("");
+  document.getElementById("veloP").classList.add("on");
+}));
+document.getElementById("salvaP").addEventListener("click", () => {
+  document.querySelectorAll("#listaPrezzi input").forEach(i => {
+    const n = parseInt(i.value.replace(/\D/g, ""), 10);
+    PREZZI[i.dataset.k] = Number.isFinite(n) ? n : 0;
+  });
+  document.getElementById("veloP").classList.remove("on");
+  ridisegna();
+  toast("Prezzi aggiornati.");
+});
+document.getElementById("annullaP").addEventListener("click", () => document.getElementById("veloP").classList.remove("on"));
+document.getElementById("veloP").addEventListener("click", e => { if (e.target.id === "veloP") e.currentTarget.classList.remove("on"); });
+
+// ---- Eventi · Stanze ----
+document.getElementById("schede").addEventListener("click", e => {
+  const b = e.target.closest(".scheda"); if (!b) return;
+  if (b.id === "aggiungi") return apriFoglio();
+  aperta = b.dataset.i === "casa" ? "casa" : Number(b.dataset.i);
+  disegnaS(true);
+});
+document.getElementById("voci").addEventListener("click", e => {
+  const t = e.target.closest(".tasto");
+  if (t) return t.disabled ? null : cambia(t.dataset.k, Number(t.dataset.d));
+  const at = e.target.closest("[data-att]");
+  if (at) return apriAtt(at.dataset.att);
+  const r = e.target.closest("[data-rub]");
+  if (r) {
+    const s = stato.stanze[aperta];
+    if (!s.att[r.dataset.rub].rub) { s.att[r.dataset.rub].rub = 1; stato.toccato = true; disegnaS(false); }
+    catDaComp = false; return apriCat(COMP[r.dataset.rub].rub, undefined, false, r.dataset.rub);
+  }
+  const c = e.target.closest("[data-cat]");
+  if (c) { catDaComp = false; return apriCat(c.dataset.cat); }
+  if (e.target.closest("#aggComp")) return apriComp();
+  if (e.target.closest("#togli")) {
+    const nome = stato.stanze[aperta].nome;
+    if (stato.stanze.length === 1) return toast("Serve almeno una stanza.");
+    stato.stanze.splice(aperta, 1);
+    stato.toccato = true;
+    aperta = Math.min(aperta, stato.stanze.length - 1);
+    disegnaS(true);
+    toast(`${nome} tolta dal preventivo.`);
+  }
+});
+document.getElementById("avanti").addEventListener("click", () => {
+  if (aperta === "casa") return vai("C");
+  aperta = aperta + 1 < stato.stanze.length ? aperta + 1 : "casa";
+  disegnaS(true);
+  window.scrollTo(0, 0);
+});
+
+// ---- Eventi · Casa ----
+document.getElementById("case").addEventListener("click", e => {
+  const b = e.target.closest(".casa"); if (!b) return;
+  stato.tipo = b.dataset.tipo; disegnaC();   // solo etichetta: i numeri non cambiano
+});
+document.getElementById("righe").addEventListener("click", e => {
+  const c = e.target.closest("[data-comp]");
+  if (c) { stato.compreso[c.dataset.comp] = !stato.compreso[c.dataset.comp]; stato.toccato = true; return disegnaC(); }
+  const b = e.target.closest(".cambia"); if (!b) return;
+  apri(b.dataset.stanza === "casa" ? "casa" : Number(b.dataset.stanza));
+});
+document.getElementById("ritocca").addEventListener("click", () => apri(0));
+
+// ---- Invio: tre anteprime, nella demo non parte niente ----
+const titoloPrev = () => `Preventivo impianto idraulico – ${LAVORI[stato.tipo]}`;
+const chiudiFogli = () => document.querySelectorAll(".velo.on").forEach(v => v.classList.remove("on"));
+// pagina ferma mentre c'è un foglio aperto, e alla chiusura torna dov'era (un controllo solo per tutti i fogli)
+let scrollFermo = 0;
+new MutationObserver(() => {
+  const aperto = !!document.querySelector(".velo.on"), b = document.body;
+  if (aperto && !b.classList.contains("fermo")) {
+    scrollFermo = window.scrollY;
+    b.style.top = `-${scrollFermo}px`; b.classList.add("fermo");
+  } else if (!aperto && b.classList.contains("fermo")) {
+    b.classList.remove("fermo"); b.style.top = "";
+    window.scrollTo(0, scrollFermo);
+  }
+}).observe(document.body, { subtree: true, attributes: true, attributeFilter: ["class"] });
+document.getElementById("invia").addEventListener("click", () => document.getElementById("veloInvio").classList.add("on"));
+document.querySelectorAll("[data-chiudi]").forEach(b => b.addEventListener("click", chiudiFogli));
+["veloInvio", "veloMail", "veloPDF", "veloAtt"].forEach(id => document.getElementById(id).addEventListener("click", e => { if (e.target.id === id) chiudiFogli(); }));
+document.getElementById("veloInvio").addEventListener("click", e => {
+  const b = e.target.closest("[data-canale]"); if (!b) return;
+  document.getElementById("veloInvio").classList.remove("on");
+  ({ WA: anteprimaWA, Mail: anteprimaMail, PDF: anteprimaPDF })[b.dataset.canale]();
+});
+
+// ---- PDF del preventivo (direzione C, 24/10): le scelte del cliente ----
+// un blocco per apparecchio con l'immagine grande e il suo rubinetto dentro, un prezzo per blocco;
+// i tubi in una riga per stanza; in fondo "compreso / non compreso" con ✓ e ✗
+const NOME_PDF = "Preventivo-impianto-idraulico.pdf";
+function immagine(k, m) {
+  if (m) return disegno(k, m);
+  if (CAT[k]) return disegno(k, { ...CAT[k][0][0], colore: "#FAFAF8", segno: "#111214" });
+  return `<svg class="sim"><use href="#${COMP[k]?.sim || (k === "dico" ? "dico" : k === "caldaia" ? "caldaia" : "altro")}"/></svg>`;
+}
+const modTxt = (m, conCat) => m ? `${MARCHE[m.az]} · ${m.nome} · ${codice(m)}` : conCat ? `<span class="dascegliere">modello da scegliere</span>` : "";
+function bloccoPDF(k, nome, m, conCat, sotto, q, unit, rub) {
+  return `<div class="pdf-blocco"><span class="pdf-grande">${immagine(k, m)}</span>
+    <span class="pdf-nome"><b>${nome}</b>${[modTxt(m, conCat), sotto].filter(Boolean).map(t => `<small>${t}</small>`).join("")}${rub || ""}</span>
+    <span class="pdf-imp">${q > 1 ? `<small>${q} × ${euro(unit)}</small>` : ""}<span class="num">${euro(q * unit)}</span></span></div>`;
+}
+function blocchiPDF(s) {
+  return s.voci.filter(k => s[k] > 0).map(k => {
+    const c = COMP[k], a = s.att[k];
+    const sotto = c.solo ? `solo allaccio: ${[a.fredda + a.calda ? acquaTxt(a.fredda + a.calda) : "", a.scarico ? scarichiTxt(a.scarico) : ""].filter(Boolean).join(", ")}`
+                : c.risc ? "posa e allaccio all'impianto" : CAT[k] ? "" : "posa";
+    let rub = "";
+    if (c.rub && a.rub) {
+      const rm = modRub(s, k), nomeRub = RUB[c.rub].nome.toLowerCase();
+      rub = `<span class="pdf-rub"><span class="pdf-mini">${immagine(c.rub, rm)}</span>con ${nomeRub}${rm ? ` · ${rm.nome}` : `, <span class="dascegliere">modello da scegliere</span>`}</span>`;
+    }
+    return bloccoPDF(k, c.nome, modello(s, k), !!CAT[k], sotto, s[k], unitApp(s, k) + unitRub(s, k), rub);
+  }).join("");
+}
+// i tubi della stanza in una riga, con i pallini della demo (blu fredda, rosso calda)
+function impiantoPDF(s) {
+  const f = conta(s, a => a.fredda), c = conta(s, a => a.calda), sc = scarichi(s);
+  if (!f && !c && !sc) return "";
+  const p = [f ? `<i style="background:#2563EB"></i>${f} fredda` : "", c ? `<i style="background:#DC2626"></i>${c} calda` : "", sc ? scarichiTxt(sc) : ""].filter(Boolean);
+  return `<div class="pdf-impianto">Impianto: ${p.join(" · ")}, compresi nei prezzi</div>`;
+}
+function pdfHTML() {
+  const oggi = new Date().toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
+  const stanze = stato.stanze.filter(s => s.voci.some(k => s[k] > 0)).map(s =>
+    `<div class="pdf-sez"><div class="pdf-sez-t"><b>${s.nome}</b><span class="num">${euro(costo(s))}</span></div>${blocchiPDF(s)}${impiantoPDF(s)}</div>`).join("");
+  const fissiR = (stato.caldaia ? bloccoPDF("caldaia", "Caldaia", modello(stato, "caldaia"), true, "posa, smontaggio della vecchia compreso", 1, prezzoDi(stato, "caldaia")) : "") +
+                 (stato.dico ? bloccoPDF("dico", "Dichiarazione di conformità", null, false, "DM 37/08", 1, PREZZI.dico) : "");
+  return `<div class="pdf-testa"><div><div class="pdf-titolo">PREVENTIVO</div><div class="pdf-sotto">${titoloPrev().replace("Preventivo i", "I")} · ${oggi}</div></div>
+      <div class="pdf-ditta"><div><b>La tua ditta</b><small>Impianti idraulici</small></div><span class="logo">LD</span></div></div>
+    <div class="pdf-per">Per: <b>il tuo cliente</b></div>` +
+    (stanze || fissiR ? stanze + (fissiR ? `<div class="pdf-sez"><div class="pdf-sez-t"><b>Caldaia e conformità</b><span class="num">${euro(fissi())}</span></div>${fissiR}</div>` : "")
+                      : `<div class="vuoto">Aggiungi sanitari, rubinetti o termosifoni: compaiono qui.</div>`) +
+    `<div class="pdf-tot"><span>Totale</span><span class="num">${euro(totale())}</span></div><div class="pdf-nota">IVA esclusa</div>` +
+    compresoPDF();
+}
+// le voci a parte in un riquadro: ✓ verde compreso, ✗ grigio non compreso (la discussione più comune con il cliente)
+function compresoPDF() {
+  const elenco = si => COMPRESO.filter(c => stato.compreso[c.k] === si).map(c => `<li>${c.nome}</li>`).join("");
+  const si = elenco(true), no = elenco(false);
+  return `<div class="pdf-riq"><div class="si"><h5>Compreso</h5><ul>${si || "<li class=\"vuota\">—</li>"}</ul></div>` +
+         `<div class="no"><h5>Non compreso</h5><ul>${no || "<li class=\"vuota\">—</li>"}</ul></div></div>`;
+}
+const allegatoHTML = () => `<button class="allegato" data-apri-pdf><span class="pdf-ico">PDF</span><span><b>${NOME_PDF}</b><small>1 pagina · PDF</small></span></button>`;
+const testoBreve = () => `Buongiorno, le invio il preventivo per l'impianto idraulico (${LAVORI[stato.tipo]}). Totale ${euro(totale())}, IVA esclusa.`;
+
+function anteprimaMail() {
+  document.getElementById("oggettoMail").textContent = titoloPrev();
+  document.getElementById("corpoMail").textContent = [testoBreve(), "", "Trova il preventivo nel PDF allegato.", "", "Cordiali saluti"].join("\n");
+  document.getElementById("allegMail").innerHTML = allegatoHTML();
+  document.getElementById("veloMail").classList.add("on");
+}
+function anteprimaPDF() {
+  document.getElementById("paginaPDF").innerHTML = pdfHTML();
+  document.getElementById("veloPDF").classList.add("on");
+}
+function anteprimaWA() {
+  // demo: niente WhatsApp vero; il messaggio porta il PDF allegato
+  const ora = new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+  document.getElementById("bollaWA").innerHTML = allegatoHTML() + testoBreve() + '<span class="ora">' + ora + " ✓✓</span>";
+  document.getElementById("veloWA").classList.add("on");
+}
+// toccando l'allegato si vede il PDF
+document.addEventListener("click", e => {
+  if (!e.target.closest("[data-apri-pdf]")) return;
+  chiudiFogli(); anteprimaPDF();
+});
+document.getElementById("chiudiWA").addEventListener("click", () => document.getElementById("veloWA").classList.remove("on"));
+document.getElementById("veloWA").addEventListener("click", e => { if (e.target.id === "veloWA") e.currentTarget.classList.remove("on"); });
+
+// ---- Nuovo apparecchio nella stanza aperta: si sceglie, poi il modello dal catalogo ----
+function apriComp() {
+  const s = stato.stanze[aperta];
+  document.getElementById("compSpiega").textContent = `In: ${s.nome}. Gli attacchi arrivano da soli; il prezzo si cambia da "Prezzi".`;
+  document.getElementById("giaComp").innerHTML = s.voci.length
+    ? `<div class="gia-titolo">Già in questa stanza</div>` +
+      s.voci.map(k => `<div class="gia-riga"><span>${COMP[k].nome}</span><button data-togli="${k}">Togli</button></div>`).join("")
+    : "";
+  const bottone = c => `<button data-c="${c.k}">${c.nome}${s.voci.includes(c.k) ? `<span class="gia-qui">già qui: ${s[c.k]}</span>` : ""}</button>`;
+  document.getElementById("sceltaComp").innerHTML =
+    GRUPPI.map(g => `<div class="gruppo-t">${g.nome}</div><div class="scelte">${APP.filter(a => a.g === g.k).map(bottone).join("")}</div>`).join("") +
+    `<div class="scelte" style="margin-top:14px">${CATALOGO.filter(c => !s.voci.includes(c.k)).map(bottone).join("")}<button class="altro" id="compAltro">+ Altro</button></div>`;
+  document.getElementById("mano").hidden = true;
+  document.getElementById("nomeMano").value = "";
+  document.getElementById("veloComp").classList.add("on");
+}
+function aggiungiComp(k, avvisoMio) {
+  const s = stato.stanze[aperta], c = COMP[k];
+  s.voci.push(k); s[k] = 1;          // si aggiunge perché ne serve almeno uno
+  s.att[k] = { ...c.att, rub: c.rub ? 1 : 0 };   // gli attacchi del tipo: si cambiano toccando i pallini
+  stato.toccato = true;
+  chiudiFogli();
+  disegnaS(false);
+  window.scrollTo(0, document.body.scrollHeight);
+  const suggerimento = avvisoTocca ? "" : "Tocca il nome per il catalogo, i pallini per gli attacchi.";
+  avvisoTocca = true;
+  const msg = [avvisoMio, suggerimento].filter(Boolean).join(" ");
+  if (msg) toast(msg);
+}
+function togliComp(k) {
+  const s = stato.stanze[aperta], nome = COMP[k].nome;
+  s.voci = s.voci.filter(x => x !== k);
+  delete s[k]; delete s.mod[k]; delete s.rmod[k]; delete s.att[k];
+  // uno scritto a mano che non è più in nessuna stanza sparisce anche dall'elenco (es. nome sbagliato)
+  if (k.startsWith("mano") && !stato.stanze.some(x => x.voci.includes(k))) {
+    CATALOGO.splice(CATALOGO.findIndex(c => c.k === k), 1); delete COMP[k]; delete PREZZI[k];
+  }
+  stato.toccato = true;
+  disegnaS(false);
+  toast(`${nome} tolto da ${s.nome}.`);
+}
+// apparecchio scritto a mano: entra nell'elenco, così si ritrova anche nelle altre stanze; attacchi da toccare
+let nMano = 0;
+function aggiungiMano() {
+  let nome = document.getElementById("nomeMano").value.replace(/[<>&"']/g, "").trim();
+  nome = nome.charAt(0).toUpperCase() + nome.slice(1);   // "boiler" → "Boiler"
+  if (!nome) return document.getElementById("nomeMano").focus();
+  const k = "mano" + (++nMano);
+  const c = { k, nome, uno: `Posa ${nome.toLowerCase()}`, sim: "altro", att: att(0, 0, 0), rub: null };
+  CATALOGO.push(c); COMP[k] = c; PREZZI[k] = 0;
+  aggiungiComp(k, `${nome}: il prezzo si imposta da "Prezzi".`);
+}
+document.getElementById("veloComp").addEventListener("click", e => {
+  const t = e.target.closest("[data-togli]");
+  if (t) { togliComp(t.dataset.togli); return apriComp(); }   // il foglio resta aperto
+  const b = e.target.closest("[data-c]");
+  if (b) {
+    const k = b.dataset.c, s = stato.stanze[aperta];
+    if (!CAT[k] && !s.voci.includes(k)) return aggiungiComp(k);   // senza catalogo (lavatrice, scritti a mano): entra subito
+    document.getElementById("veloComp").classList.remove("on");
+    catDaComp = true;
+    return apriCat(k, undefined, !s.voci.includes(k));            // nuovo: si aggiunge scegliendo il modello
+  }
+  if (e.target.closest("#compAltro")) {
+    document.getElementById("mano").hidden = false;
+    return document.getElementById("nomeMano").focus();
+  }
+  if (e.target.closest("#aggMano")) return aggiungiMano();
+  if (e.target.id === "veloComp") document.getElementById("veloComp").classList.remove("on");
+});
+document.getElementById("nomeMano").addEventListener("keydown", e => { if (e.key === "Enter") aggiungiMano(); });
+
+// ---- Cosa serve: gli attacchi di un apparecchio (per pezzo) e il suo rubinetto ----
+let attK = null;
+function apriAtt(k) {
+  attK = k;
+  const s = stato.stanze[aperta], c = COMP[k], a = s.att[k];
+  document.getElementById("attTitolo").textContent = `Cosa serve: ${c.nome}`;
+  document.getElementById("attSpiega").textContent = c.risc
+    ? `L'allaccio all'impianto è compreso nella posa. Aggiungi un punto acqua o uno scarico solo se servono davvero.`
+    : `Per ${s[k] > 1 ? "ogni pezzo" : "questo pezzo"}. Cambia se lo scarico va spostato o manca l'acqua calda.`;
+  const pal = { fredda: "var(--fredda)", calda: "var(--calda)" };
+  const rigaA = (key, nome, sotto, ico, q, max) => `<div class="voce">${ico}
+      <div class="etich"><b>${nome}</b><small>${sotto}</small></div>
+      <button class="tasto" data-ak="${key}" data-d="-1" ${q === 0 ? "disabled" : ""} aria-label="Togli">−</button>
+      <div class="q num ${q === 0 ? "zero" : ""}" id="qa-${key}">${q}</div>
+      <button class="tasto" data-ak="${key}" data-d="1" ${q >= max ? "disabled" : ""} aria-label="Aggiungi">+</button></div>`;
+  document.getElementById("attRighe").innerHTML =
+    ATTACCHI.map(x => rigaA(x.k, x.nome, `${euro(PREZZI[x.k])} ${x.k === "scarico" ? "l'uno" : "a punto"}`,
+      pal[x.k] ? `<span style="width:24px;display:flex;justify-content:center"><span class="pallino" style="background:${pal[x.k]};width:12px;height:12px"></span></span>`
+               : `<svg class="sim"><use href="#scarico"/></svg>`, a[x.k], 4)).join("") +
+    (c.rub ? rigaA("rub", RUB[c.rub].nome, `${euro(PREZZI.rub)} posa, il modello dal catalogo`, `<svg class="sim"><use href="#rubinetto"/></svg>`, a.rub, 1) : "");
+  document.getElementById("veloAtt").classList.add("on");
+}
+document.getElementById("veloAtt").addEventListener("click", e => {
+  const t = e.target.closest("[data-ak]"); if (!t || t.disabled) return;
+  const a = stato.stanze[aperta].att[attK], key = t.dataset.ak;
+  a[key] = Math.max(0, a[key] + Number(t.dataset.d));
+  stato.toccato = true;
+  disegnaS(false); apriAtt(attK); batte("qa-" + key);
+});
+
+// ---- Foto segnaposto: un disegno del prodotto nel colore della serie ----
+function disegno(k, x) {
+  const c = x.colore, t = x.segno, bordo = 'stroke="rgba(0,0,0,.2)" stroke-width="1"';
+  const metallo = `fill="${c}" ${bordo}`;
+  const D = {
+    wc:      `<rect x="20" y="6" width="24" height="22" rx="3" fill="${c}" ${bordo}/><path d="M10 30h44c0 10-8 17-18 17h-4l2 10H22l3-11C16 43 10 38 10 30z" fill="${c}" ${bordo}/><rect x="28" y="10" width="8" height="3" rx="1.5" fill="${t}" fill-opacity=".35"/>`,
+    bidet:   `<path d="M10 28h44c0 10-8 17-18 17h-8c-10 0-18-7-18-17z" fill="${c}" ${bordo}/><path d="M24 45l-2 12h20l-2-12" fill="${c}" ${bordo}/><circle cx="32" cy="24" r="3" fill="${t}" fill-opacity=".35"/>`,
+    lavabo:  `<path d="M6 24h52v4c0 12-10 20-22 20h-8C16 48 6 40 6 28z" fill="${c}" ${bordo}/><ellipse cx="32" cy="30" rx="18" ry="5" fill="${t}" fill-opacity=".1"/><circle cx="32" cy="18" r="3" fill="${t}" fill-opacity=".35"/>`,
+    doccia:  `<rect x="8" y="8" width="48" height="48" rx="4" fill="${c}" ${bordo}/><rect x="13" y="13" width="38" height="38" rx="2" fill="none" stroke="${t}" stroke-opacity=".15"/><circle cx="32" cy="32" r="5" fill="none" stroke="${t}" stroke-opacity=".5" stroke-width="2"/><path d="M29 32h6" stroke="${t}" stroke-opacity=".5" stroke-width="1.5"/>`,
+    vasca:   `<rect x="4" y="16" width="56" height="32" rx="14" fill="${c}" ${bordo}/><rect x="10" y="21" width="44" height="22" rx="10" fill="${t}" fill-opacity=".08"/><circle cx="16" cy="32" r="2.5" fill="${t}" fill-opacity=".4"/>`,
+    lavello: `<rect x="4" y="16" width="56" height="32" rx="4" fill="${c}" ${bordo}/><rect x="9" y="21" width="22" height="22" rx="4" fill="${t}" fill-opacity=".12"/><rect x="35" y="21" width="20" height="22" rx="4" fill="${t}" fill-opacity=".12"/><circle cx="20" cy="32" r="2" fill="${t}" fill-opacity=".4"/>`,
+    termo:   [10, 20, 30, 40, 50].map(x0 => `<rect x="${x0 - 3}" y="10" width="8" height="44" rx="3" fill="${c}" ${bordo}/>`).join("") + `<rect x="6" y="14" width="52" height="3" rx="1.5" fill="${c}" ${bordo}/><rect x="6" y="47" width="52" height="3" rx="1.5" fill="${c}" ${bordo}/>`,
+    salviette: `<rect x="14" y="6" width="5" height="52" rx="2" fill="${c}" ${bordo}/><rect x="45" y="6" width="5" height="52" rx="2" fill="${c}" ${bordo}/>` + [12, 20, 28, 36, 44, 52].map(y => `<rect x="17" y="${y - 2}" width="30" height="4" rx="2" fill="${c}" ${bordo}/>`).join(""),
+    rubest:  `<rect x="6" y="14" width="10" height="20" rx="2" fill="#B9B4AA"/><path d="M16 22h22a10 10 0 0 1 10 10v6h-8v-5a3 3 0 0 0-3-3H16z" ${metallo}/><rect x="24" y="12" width="6" height="10" rx="1" ${metallo}/><rect x="18" y="8" width="18" height="5" rx="2.5" fill="#DC2626"/>`,
+    caldaia: `<rect x="14" y="4" width="36" height="50" rx="5" fill="${c}" ${bordo}/><rect x="21" y="12" width="22" height="10" rx="2" fill="#0F172A"/><rect x="24" y="15.5" width="10" height="3" rx="1" fill="#22C55E"/><circle cx="25" cy="36" r="4" fill="${t}" fill-opacity=".3"/><circle cx="39" cy="36" r="4" fill="${t}" fill-opacity=".3"/><path d="M22 54v6M28 54v6M36 54v6M42 54v6" stroke="#9A9DA4" stroke-width="2.5"/>`,
+  };
+  // rubinetti: un miscelatore a leva nel colore della finitura; la colonna doccia è alta
+  const misc = `<rect x="18" y="50" width="28" height="6" rx="2" fill="#9A9DA4"/><rect x="26" y="22" width="12" height="30" rx="4" ${metallo}/><path d="M32 26h16a6 6 0 0 1 6 6v4h-6v-3a2 2 0 0 0-2-2H32z" ${metallo}/><rect x="22" y="14" width="22" height="6" rx="3" ${metallo}/>`;
+  const colonna = `<rect x="29" y="10" width="5" height="48" rx="2" ${metallo}/><path d="M31 12h14v4H31z" ${metallo}/><ellipse cx="46" cy="18" rx="9" ry="3.5" ${metallo}/><rect x="22" y="38" width="18" height="8" rx="3" ${metallo}/>`;
+  const tipo = k === "colonna" ? colonna : RUB[k] ? misc : D[k];
+  return `<svg viewBox="0 0 64 64">${tipo || D.lavabo}</svg>`;
+}
+const sigla = k => k.replace(/[aeiou]/g, "").slice(0, 3).toUpperCase().padEnd(3, "X");
+const codice = x => `${"ABC"[x.az]}-${sigla(x.id.split("-")[0])}-${String(Number(x.id.split("-")[2]) + 1).padStart(2, "0")}`;
+
+// ---- Catalogo: azienda → modello, e "Togli" in fondo. Vale per apparecchi, rubinetti (di un apparecchio) e caldaia ----
+let catK = null, catAz = 0, catNuovo = false, catDi = null, catDaComp = false;   // catDi: l'apparecchio del rubinetto
+const dove = () => aperta === "casa" ? stato : stato.stanze[aperta];   // la caldaia vale per tutta la casa
+function apriCat(k, az, nuovo = catNuovo && k === catK, di = (RUB[k] ? catDi : null)) {
+  document.getElementById("indietroCat").hidden = !catDaComp;
+  catK = k; catNuovo = nuovo; catDi = di;
+  const d = dove(), rub = !!RUB[k];
+  const scelto = rub ? d.rmod[di] : d.mod[k], m = scelto ? MOD[scelto] : null;
+  const nome = rub ? RUB[k].nome : COMP[k]?.nome || FISSI.find(f => f.k === k).nome;
+  catAz = az ?? (m ? m.az : 0);
+  const luogo = aperta === "casa" ? "Tutta la casa" : d.nome;
+  document.getElementById("modTitolo").textContent = `Catalogo: ${nome}`;
+  let html = "";
+  if (CAT[k]) {
+    const posa = rub ? PREZZI.rub : PREZZI[k];
+    document.getElementById("modSpiega").textContent =
+      `In: ${luogo}${rub ? ` · per: ${COMP[di].nome}` : ""}. Il prezzo del modello si aggiunge alla posa (${euro(posa)}${!rub && COMP[k] ? " e agli attacchi" : ""}).`;
+    html = `<p class="avviso-cat">Foto, marche e codici di prova: qui andrà il catalogo dell'azienda.</p>` +
+      `<div class="aziende">${AZIENDE.map((a, n) => `<button data-az="${n}" aria-pressed="${n === catAz}">${a}</button>`).join("")}</div>` +
+      CAT[k][catAz].map(x =>
+        `<button class="mod" data-m="${x.id}" aria-pressed="${x.id === scelto}">
+          <span class="foto">${disegno(k, x)}</span>
+          <span class="info"><span class="marca">${MARCHE[x.az]}</span><b>${x.nome}</b><span class="cod">Cod. ${codice(x)} · ${x.fin}</span></span>
+          <span class="piu-p num">+ ${euro(x.prezzo)}</span></button>`).join("") +
+      (nuovo ? `<button class="mod nessuno" data-m="">Aggiungi senza modello (solo posa)</button>`
+       : m ? `<button class="mod nessuno" data-m="">Nessun modello (solo posa)</button>` : "");
+  } else {
+    document.getElementById("modSpiega").textContent = COMP[k]?.solo
+      ? `In: ${luogo}. È un apparecchio del cliente: nel preventivo c'è solo l'allaccio.`
+      : `In: ${luogo}. Nessun catalogo per questo apparecchio: il prezzo si imposta da "Prezzi".`;
+  }
+  if (rub) html += `<button class="togli-cat" data-togli-rub>Senza ${RUB[k].corto.toLowerCase()} (lo porta il cliente)</button>`;
+  else if (aperta !== "casa" && !nuovo) html += `<button class="togli-cat" data-togli-cat>Togli ${nome} da ${d.nome}</button>`;
+  document.getElementById("modelli").innerHTML = html;
+  document.getElementById("veloMod").classList.add("on");
+}
+document.getElementById("veloMod").addEventListener("click", e => {
+  if (e.target.closest("#indietroCat")) {
+    catNuovo = false; e.currentTarget.classList.remove("on");
+    return apriComp();
+  }
+  const az = e.target.closest("[data-az]");
+  if (az) return apriCat(catK, Number(az.dataset.az));
+  if (e.target.closest("[data-togli-cat]")) {
+    document.getElementById("veloMod").classList.remove("on");
+    return togliComp(catK);
+  }
+  if (e.target.closest("[data-togli-rub]")) {
+    const s = dove();
+    s.att[catDi].rub = 0; delete s.rmod[catDi];
+    stato.toccato = true;
+    document.getElementById("veloMod").classList.remove("on");
+    disegnaS(false);
+    return toast(`${COMP[catDi].nome}: senza ${RUB[catK].corto.toLowerCase()}.`);
+  }
+  const b = e.target.closest("[data-m]");
+  if (b) {
+    const d = dove(), rub = !!RUB[catK], dove2 = rub ? d.rmod : d.mod, chiave = rub ? catDi : catK;
+    if (b.dataset.m) dove2[chiave] = b.dataset.m; else delete dove2[chiave];
+    const m = b.dataset.m ? MOD[b.dataset.m] : null;
+    const nome = rub ? `${RUB[catK].nome} (${COMP[catDi].nome})` : COMP[catK]?.nome || "Caldaia";
+    const msg = m ? `${nome}: ${sceltoTxt(m)}.` : `${nome}: solo posa.`;
+    if (catNuovo) { catNuovo = false; return aggiungiComp(catK, msg); }   // l'apparecchio entra nella stanza con 1
+    if (catK === "caldaia" && m) stato.caldaia = 1;                       // scegli la caldaia = la metti nel preventivo
+    stato.toccato = true;
+    document.getElementById("veloMod").classList.remove("on");
+    disegnaS(false);
+    return toast(msg);
+  }
+  if (e.target.id === "veloMod") { catNuovo = false; e.currentTarget.classList.remove("on"); }
+});
+
+// ---- Nuova stanza ----
+function apriFoglio() {
+  document.getElementById("scelte").innerHTML = NUOVE.map(n => `<button data-n="${n}">${n}</button>`).join("") +
+    `<button class="altro" id="stanzaAltro">+ Altro</button>`;
+  document.getElementById("manoStanza").hidden = true;
+  document.getElementById("nomeStanza").value = "";
+  document.getElementById("velo").classList.add("on");
+}
+function aggiungiStanza(base) {
+  // se il nome c'è già, aggiunge un numero: "Bagno 2", "Bagno 3"…
+  let nome = base, n = 2;
+  while (stato.stanze.some(s => s.nome === nome)) nome = `${base} ${n++}`;
+  stato.stanze.push(vuota(nome));
+  stato.toccato = true;
+  aperta = stato.stanze.length - 1;
+  document.getElementById("velo").classList.remove("on");
+  disegnaS(true);
+}
+function aggiungiStanzaMano() {
+  let nome = document.getElementById("nomeStanza").value.replace(/[<>&"']/g, "").trim();
+  nome = nome.charAt(0).toUpperCase() + nome.slice(1);   // "taverna" → "Taverna"
+  if (!nome) return document.getElementById("nomeStanza").focus();
+  aggiungiStanza(nome);
+}
+document.getElementById("velo").addEventListener("click", e => {
+  const b = e.target.closest("[data-n]");
+  if (b) return aggiungiStanza(b.dataset.n);
+  if (e.target.closest("#stanzaAltro")) {
+    document.getElementById("manoStanza").hidden = false;
+    return document.getElementById("nomeStanza").focus();
+  }
+  if (e.target.closest("#aggStanza")) return aggiungiStanzaMano();
+  if (e.target.id === "velo") document.getElementById("velo").classList.remove("on");
+});
+document.getElementById("nomeStanza").addEventListener("keydown", e => { if (e.key === "Enter") aggiungiStanzaMano(); });
+
+nuovo();
+vai("S");
+
+// ===== i lati su computer si aggiornano a ogni disegno della schermata =====
+function lati() {
+  document.getElementById("foglioVivo").innerHTML = pdfHTML();
+  document.getElementById("stanzeLato").innerHTML =
+    stato.stanze.map((s, i) => `<button class="${aperta === i ? "on" : ""}" data-lato="${i}"><b>${s.nome}</b><span>${pezziTxt(pezzi(s))} · ${euro(costo(s))}</span></button>`).join("") +
+    `<button class="${aperta === "casa" ? "on" : ""}" data-lato="casa"><b>Tutta la casa</b><span>${euro(fissi())}</span></button>` +
+    `<div class="tot-lato"><span>Totale</span><b>${euro(totale())}</b></div>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-lato]"); if (!b) return;
+  apri(b.dataset.lato === "casa" ? "casa" : Number(b.dataset.lato));
+});
+const _disegnaS = disegnaS, _disegnaC = disegnaC;
+disegnaS = function (x) { _disegnaS(x); lati(); };
+disegnaC = function () { _disegnaC(); lati(); };
+lati();
+
+// ===== catalogo completo (sfoglia e aggiungi) e invio dalla vetrina =====
+let catTuttoAz = 0;
+const stanzaDest = () => aperta === "casa" ? 0 : aperta;      // su "Tutta la casa" gli apparecchi vanno nella prima stanza
+function disegnaCatTutto() {
+  const dest = stato.stanze[stanzaDest()].nome;
+  const carta = (k, x, dove, nome) => `<div class="carta-cat"><span class="foto">${disegno(k, x)}</span>
+      <div><span class="marca">${MARCHE[x.az]}</span><b>${nome ? nome + " · " : ""}${x.nome}</b><span class="cod">Cod. ${codice(x)} · ${x.fin}</span></div>
+      <div class="riga-p"><span class="num">${euro(x.prezzo)}</span><button class="agg" data-agg-cat="${k}" data-id="${x.id}">Aggiungi a ${dove}</button></div></div>`;
+  const griglia = (k, dove, nome) => `<div class="griglia-cat">${CAT[k][catTuttoAz].map(x => carta(k, x, dove, nome)).join("")}</div>`;
+  document.getElementById("corpoCatTutto").innerHTML =
+    `<div class="aziende">${AZIENDE.map((a, n) => `<button data-az-tutto="${n}" aria-pressed="${n === catTuttoAz}">${a}</button>`).join("")}</div>` +
+    GRUPPI.map(g => {
+      const conCat = APP.filter(a => a.g === g.k && CAT[a.k]);
+      return conCat.length ? `<h3>${g.nome}</h3>` + conCat.map(a => `<h4>${a.nome}</h4>${griglia(a.k, dest)}`).join("") : "";
+    }).join("") +
+    `<h3>Rubinetteria</h3>` + Object.entries(RUB).map(([k, r]) => `<h4>${r.nome}</h4>${griglia(k, dest, r.corto)}`).join("") +
+    `<h3>Caldaia</h3><div style="margin-top:12px">${griglia("caldaia", "Tutta la casa")}</div>`;
+}
+function aggiungiDaCat(k, id) {
+  const m = MOD[id];
+  if (k === "caldaia") {
+    stato.caldaia = 1; stato.mod.caldaia = id;
+    stato.toccato = true; ridisegna();
+    return toast(`Caldaia · ${m.nome} aggiunta a Tutta la casa.`);
+  }
+  const s = stato.stanze[stanzaDest()];
+  if (RUB[k]) {
+    // il rubinetto va al primo apparecchio della stanza che lo usa
+    const di = s.voci.find(x => COMP[x].rub === k);
+    if (!di) return toast(`Prima aggiungi in ${s.nome} un apparecchio per questo rubinetto.`);
+    s.att[di].rub = 1; s.rmod[di] = id;
+    stato.toccato = true; ridisegna();
+    return toast(`${RUB[k].nome} · ${m.nome} per ${COMP[di].nome} in ${s.nome}.`);
+  }
+  const c = COMP[k], cera = s.voci.includes(k);
+  if (cera) s[k] += 1; else { s.voci.push(k); s[k] = 1; s.att[k] = { ...c.att, rub: c.rub ? 1 : 0 }; }
+  s.mod[k] = id;
+  stato.toccato = true; ridisegna();
+  toast(`${c.nome} · ${m.nome} aggiunto a ${s.nome}` + (cera ? `: ora ${s[k]}, tutti di questo modello.` : "."));
+}
+document.querySelectorAll("[data-apri-cat]").forEach(b => b.addEventListener("click", () => {
+  disegnaCatTutto(); document.getElementById("veloCatTutto").classList.add("on");
+}));
+document.querySelectorAll("[data-apri-invio]").forEach(b => b.addEventListener("click", () => document.getElementById("veloInvio").classList.add("on")));
+document.getElementById("veloCatTutto").addEventListener("click", e => {
+  const az = e.target.closest("[data-az-tutto]");
+  if (az) { catTuttoAz = Number(az.dataset.azTutto); return disegnaCatTutto(); }
+  const a = e.target.closest("[data-agg-cat]");
+  if (a) return aggiungiDaCat(a.dataset.aggCat, a.dataset.id);   // la finestra resta aperta
+  if (e.target.closest("[data-chiudi-cat]") || e.target.id === "veloCatTutto") e.currentTarget.classList.remove("on");
+});
+</script>
+</body>
+</html>
